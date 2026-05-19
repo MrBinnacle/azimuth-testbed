@@ -337,6 +337,18 @@ const MODELS = [
   { id: 'claude-sonnet-4-20250514', label: 'Sonnet 4' },
 ]
 
+const GHOST_BTN = {
+  background: 'none',
+  border: `1px solid ${C.border}`,
+  color: C.textSecondary,
+  fontFamily: MONO,
+  fontSize: '9px',
+  letterSpacing: '0.07em',
+  cursor: 'pointer',
+}
+
+const PANEL_BORDER = { borderRight: `1px solid ${C.border}` }
+
 // ─── Verdict helpers ──────────────────────────────────────────────────────────
 const VERDICT_RE = /\b(REJECT|PILOT FIRST|PROCEED WITH SAFEGUARDS|PROCEED|REDUCE SCOPE|DELAY PENDING EVIDENCE|INSUFFICIENT SIGNAL)\b/i
 
@@ -412,7 +424,7 @@ function exportLog(runs) {
 
 // ─── useWindowWidth ───────────────────────────────────────────────────────────
 function useWindowWidth() {
-  const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1400)
+  const [w, setW] = useState(window.innerWidth)
   useEffect(() => {
     const h = () => setW(window.innerWidth)
     window.addEventListener('resize', h)
@@ -591,11 +603,7 @@ function RunCard({ run, isActive, isSelected, onSelect, onView, onLabelChange, o
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button
           onClick={e => { e.stopPropagation(); onExport(run) }}
-          style={{
-            background: 'none', border: `1px solid ${C.border}`, color: C.textSecondary,
-            fontFamily: MONO, fontSize: '9px', letterSpacing: '0.07em',
-            padding: '2px 8px', cursor: 'pointer',
-          }}
+          style={{ ...GHOST_BTN, padding: '2px 8px' }}
         >
           EXPORT MD
         </button>
@@ -677,11 +685,7 @@ function CompareView({ runA, runB, onClose }) {
         </span>
         <button
           onClick={onClose}
-          style={{
-            background: 'none', border: `1px solid ${C.border}`, color: C.textSecondary,
-            fontFamily: MONO, fontSize: '10px', letterSpacing: '0.07em',
-            padding: '4px 14px', cursor: 'pointer',
-          }}
+          style={{ ...GHOST_BTN, fontSize: '10px', padding: '4px 14px' }}
         >
           CLOSE
         </button>
@@ -728,7 +732,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
   const [compareMode, setCompareMode] = useState(false)
-  const [runCounter, setRunCounter] = useState(1)
+  const runCounterRef = useRef(1)
   const [selectedModel, setSelectedModel] = useState(MODELS[0].id)
 
   const windowWidth = useWindowWidth()
@@ -763,41 +767,43 @@ export default function App() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`)
       const text = data.content?.[0]?.text || ''
+      const now = new Date()
       const run = {
-        id: new Date().toISOString(),
-        label: `Run ${runCounter}`,
+        id: now.toISOString(),
+        label: `Run ${runCounterRef.current}`,
         tags: [],
         prompt,
         output: text,
         verdict: extractVerdict(text),
         confidence: extractConfidence(text),
-        date: new Date().toISOString().slice(0, 10),
+        date: now.toISOString().slice(0, 10),
         model: selectedModel,
       }
       setRuns(prev => [run, ...prev])
       setActiveRun(run)
-      setRunCounter(c => c + 1)
+      runCounterRef.current += 1
     } catch (err) {
       if (err.name === 'AbortError') return
+      const now = new Date()
       const errRun = {
-        id: new Date().toISOString(),
-        label: `Run ${runCounter} — ERROR`,
+        id: now.toISOString(),
+        label: `Run ${runCounterRef.current} — ERROR`,
         tags: [],
         prompt,
         output: `Error: ${err.message.replace(/sk-[A-Za-z0-9_-]{10,}/g, '[REDACTED]')}`,
         verdict: 'UNKNOWN',
         confidence: 'Unknown',
-        date: new Date().toISOString().slice(0, 10),
+        date: now.toISOString().slice(0, 10),
         model: selectedModel,
       }
       setRuns(prev => [errRun, ...prev])
       setActiveRun(errRun)
-      setRunCounter(c => c + 1)
+      runCounterRef.current += 1
     } finally {
       clearTimeout(timeoutId)
       setLoading(false)
     }
-  }, [prompt, loading, apiKey, runCounter, selectedModel])
+  }, [prompt, apiKey, selectedModel])
 
   const handleSelect = useCallback((run) => {
     setSelectedIds(prev => {
@@ -823,7 +829,7 @@ export default function App() {
   const displayRun = activeRun ?? runs[0] ?? null
   const selectedRuns = runs.filter(r => selectedIds.includes(r.id))
 
-  const panelBorder = { borderRight: `1px solid ${C.border}` }
+  const isRunDisabled = !prompt.trim()
 
   return (
     <>
@@ -855,11 +861,7 @@ export default function App() {
             </span>
             <button
               onClick={() => exportLog(runs)}
-              style={{
-                background: 'none', border: `1px solid ${C.border}`, color: C.textSecondary,
-                fontFamily: MONO, fontSize: '9px', letterSpacing: '0.08em',
-                padding: '4px 12px', cursor: 'pointer',
-              }}
+              style={{ ...GHOST_BTN, padding: '4px 12px' }}
             >
               EXPORT LOG
             </button>
@@ -876,7 +878,7 @@ export default function App() {
           <div style={{
             width: isNarrow ? '100%' : '300px', flexShrink: 0,
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            background: C.surface, ...panelBorder,
+            background: C.surface, ...PANEL_BORDER,
           }}>
             {/* Variants */}
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
@@ -938,13 +940,13 @@ export default function App() {
               </div>
               <button
                 onClick={handleRun}
-                disabled={!prompt.trim()}
+                disabled={isRunDisabled}
                 style={{
-                  background: !prompt.trim() ? C.elevated : C.gold,
-                  color: !prompt.trim() ? C.textSecondary : '#0C0C0E',
+                  background: isRunDisabled ? C.elevated : C.gold,
+                  color: isRunDisabled ? C.textSecondary : '#0C0C0E',
                   border: 'none', fontFamily: MONO, fontSize: '11px',
                   letterSpacing: '0.1em', padding: '11px',
-                  cursor: !prompt.trim() ? 'default' : 'pointer',
+                  cursor: isRunDisabled ? 'default' : 'pointer',
                   flexShrink: 0,
                 }}
               >
@@ -956,7 +958,7 @@ export default function App() {
           {/* CENTER — output */}
           <div style={{
             flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            background: C.bg, minWidth: 0, ...panelBorder,
+            background: C.bg, minWidth: 0, ...PANEL_BORDER,
           }}>
             <div style={{
               padding: '10px 16px', borderBottom: `1px solid ${C.border}`,
@@ -968,12 +970,7 @@ export default function App() {
                   <VerdictTag verdict={displayRun.verdict} />
                   <button
                     onClick={() => exportRunMd(displayRun)}
-                    style={{
-                      marginLeft: 'auto', background: 'none',
-                      border: `1px solid ${C.border}`, color: C.textSecondary,
-                      fontFamily: MONO, fontSize: '9px', letterSpacing: '0.07em',
-                      padding: '3px 10px', cursor: 'pointer',
-                    }}
+                    style={{ ...GHOST_BTN, marginLeft: 'auto', padding: '3px 10px' }}
                   >
                     EXPORT
                   </button>
@@ -1021,11 +1018,7 @@ export default function App() {
                 )}
                 <button
                   onClick={() => setSelectedIds([])}
-                  style={{
-                    background: 'none', border: `1px solid ${C.border}`, color: C.textSecondary,
-                    fontFamily: MONO, fontSize: '9px', letterSpacing: '0.06em',
-                    padding: '3px 8px', cursor: 'pointer', marginLeft: 'auto',
-                  }}
+                  style={{ ...GHOST_BTN, padding: '3px 8px', marginLeft: 'auto' }}
                 >
                   CLEAR
                 </button>
