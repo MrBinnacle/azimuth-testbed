@@ -12,3 +12,6 @@ verification/
 
 # OMC internal state
 .omc/
+
+# Local Netlify folder
+.netlify
