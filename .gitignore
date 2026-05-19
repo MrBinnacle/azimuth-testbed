@@ -1,0 +1,14 @@
+# Private launch documents
+00-*.md
+01-*.md
+02-*.md
+03-*.md
+CLAUDE.md
+Day1Launch*
+day1-tracking.md
+held/
+submissions/
+verification/
+
+# OMC internal state
+.omc/
