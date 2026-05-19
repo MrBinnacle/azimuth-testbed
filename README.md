@@ -12,7 +12,7 @@ Nine possible verdicts: REJECT / PILOT FIRST / PROCEED / PROCEED WITH SAFEGUARDS
 
 No installation. No account. Enter your Anthropic API key, load a prompt, run it.
 
-*Hosted URL will be added here after first deploy.*
+**[https://azimuth-testbed.netlify.app](https://azimuth-testbed.netlify.app)**
 
 ---
 
