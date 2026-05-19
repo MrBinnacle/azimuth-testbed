@@ -383,7 +383,7 @@ function download(filename, content, type = 'text/plain') {
   a.href = url
   a.download = filename
   a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 function exportRunMd(run) {
@@ -440,7 +440,7 @@ const RUN_0 = {
 
 function ApiKeyModal({ onConfirm }) {
   const [val, setVal] = useState('')
-  const valid = val.startsWith('sk-')
+  const valid = val.startsWith('sk-ant-')
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(12,12,14,0.94)',
@@ -453,13 +453,17 @@ function ApiKeyModal({ onConfirm }) {
         <div style={{ fontFamily: MONO, fontSize: '10px', letterSpacing: '0.1em', color: C.gold, marginBottom: '6px' }}>
           ANTHROPIC API KEY
         </div>
-        <p style={{ fontFamily: MONO, fontSize: '11px', color: C.textSecondary, lineHeight: 1.6, marginBottom: '16px' }}>
+        <p style={{ fontFamily: MONO, fontSize: '11px', color: C.textSecondary, lineHeight: 1.6, marginBottom: '10px' }}>
           Your key is sent directly from your browser to Anthropic. It never touches our
           servers. We store nothing. Key held in memory only — cleared when you close the tab.{' '}
           <a href="https://github.com/MrBinnacle/azimuth-testbed" target="_blank" rel="noopener noreferrer"
              style={{ color: C.gold, textDecoration: 'none' }}>
             View source
           </a>
+        </p>
+        <p style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary, lineHeight: 1.6, marginBottom: '16px', opacity: 0.75 }}>
+          Anthropic API keys grant full org billing access — set a spend cap on your key before use.
+          Browser extensions with access to this tab can read your key.
         </p>
         <input
           type="password"
@@ -554,7 +558,7 @@ function RunCard({ run, isActive, isSelected, onSelect, onView, onLabelChange, o
         <span
           contentEditable
           suppressContentEditableWarning
-          onBlur={e => onLabelChange(run.id, e.currentTarget.textContent)}
+          onBlur={e => onLabelChange(run.id, e.currentTarget.textContent.trim().slice(0, 200))}
           onClick={e => e.stopPropagation()}
           style={{
             fontFamily: MONO, fontSize: '11px', color: C.textPrimary,
@@ -633,6 +637,7 @@ function OutputDisplay({ run, loading }) {
           {run.label} · {run.date}
         </div>
       </div>
+      {/* SECURITY: text node only — model output is untrusted; do not switch to dangerouslySetInnerHTML */}
       <pre style={{
         fontFamily: MONO, fontSize: '13px', color: C.textPrimary,
         lineHeight: 1.75, whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0,
@@ -713,6 +718,9 @@ function SectionLabel({ text }) {
 
 export default function App() {
   const envKey = import.meta.env.VITE_ANTHROPIC_API_KEY || ''
+  if (import.meta.env.PROD && envKey) {
+    console.error('SECURITY: VITE_ANTHROPIC_API_KEY is set in a production build. This key is embedded in the public bundle. Remove it from the Netlify environment immediately.')
+  }
   const [apiKey, setApiKey] = useState(envKey)
   const [prompt, setPrompt] = useState('')
   const [runs, setRuns] = useState([RUN_0])
@@ -732,11 +740,13 @@ export default function App() {
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
+    const timeoutId = setTimeout(() => controller.abort(), 120_000)
     setLoading(true)
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         signal: controller.signal,
+        referrerPolicy: 'no-referrer',
         headers: {
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
@@ -774,7 +784,7 @@ export default function App() {
         label: `Run ${runCounter} — ERROR`,
         tags: [],
         prompt,
-        output: `Error: ${err.message}`,
+        output: `Error: ${err.message.replace(/sk-[A-Za-z0-9_-]{10,}/g, '[REDACTED]')}`,
         verdict: 'UNKNOWN',
         confidence: 'Unknown',
         date: new Date().toISOString().slice(0, 10),
@@ -784,6 +794,7 @@ export default function App() {
       setActiveRun(errRun)
       setRunCounter(c => c + 1)
     } finally {
+      clearTimeout(timeoutId)
       setLoading(false)
     }
   }, [prompt, loading, apiKey, runCounter, selectedModel])
