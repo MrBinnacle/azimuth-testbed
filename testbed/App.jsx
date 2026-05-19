@@ -332,6 +332,11 @@ const SANS = "'IBM Plex Sans', sans-serif"
 
 const ALL_TAGS = ['fresh-context', 'thin-prompt', 'adversarial', 'full-framing', 'contaminated']
 
+const MODELS = [
+  { id: 'claude-opus-4-5',          label: 'Opus 4.5' },
+  { id: 'claude-sonnet-4-20250514', label: 'Sonnet 4' },
+]
+
 // ─── Verdict helpers ──────────────────────────────────────────────────────────
 const VERDICT_RE = /\b(REJECT|PILOT FIRST|PROCEED WITH SAFEGUARDS|PROCEED|REDUCE SCOPE|DELAY PENDING EVIDENCE|INSUFFICIENT SIGNAL)\b/i
 
@@ -385,6 +390,7 @@ function exportRunMd(run) {
   const md = [
     `# AZIMUTH Run — ${run.label}`,
     `Date: ${run.date}`,
+    `Model: ${run.model || 'unknown'}`,
     `Verdict: ${run.verdict}`,
     `Confidence: ${run.confidence}`,
     `Tags: ${run.tags.join(', ') || 'none'}`,
@@ -425,6 +431,7 @@ const RUN_0 = {
   verdict: 'REJECT',
   confidence: 'Medium',
   date: '2026-05-19',
+  model: 'claude-sonnet-4-20250514',
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -564,6 +571,11 @@ function RunCard({ run, isActive, isSelected, onSelect, onView, onLabelChange, o
           {run.date}
         </span>
       </div>
+      {run.model && (
+        <div style={{ fontFamily: MONO, fontSize: '9px', color: C.textSecondary, letterSpacing: '0.06em', marginBottom: '6px', opacity: 0.7 }}>
+          {run.model}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '10px' }}>
         {ALL_TAGS.map(t => (
           <TagChip
@@ -709,6 +721,7 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState([])
   const [compareMode, setCompareMode] = useState(false)
   const [runCounter, setRunCounter] = useState(1)
+  const [selectedModel, setSelectedModel] = useState(MODELS[0].id)
 
   const windowWidth = useWindowWidth()
   const isNarrow = windowWidth < 1200
@@ -731,7 +744,7 @@ export default function App() {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: selectedModel,
           max_tokens: 4000,
           system: AZIMUTH_SYSTEM_PROMPT,
           messages: [{ role: 'user', content: prompt }],
@@ -749,6 +762,7 @@ export default function App() {
         verdict: extractVerdict(text),
         confidence: extractConfidence(text),
         date: new Date().toISOString().slice(0, 10),
+        model: selectedModel,
       }
       setRuns(prev => [run, ...prev])
       setActiveRun(run)
@@ -764,6 +778,7 @@ export default function App() {
         verdict: 'UNKNOWN',
         confidence: 'Unknown',
         date: new Date().toISOString().slice(0, 10),
+        model: selectedModel,
       }
       setRuns(prev => [errRun, ...prev])
       setActiveRun(errRun)
@@ -771,7 +786,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [prompt, loading, apiKey, runCounter])
+  }, [prompt, loading, apiKey, runCounter, selectedModel])
 
   const handleSelect = useCallback((run) => {
     setSelectedIds(prev => {
@@ -892,6 +907,24 @@ export default function App() {
                   minHeight: isNarrow ? '100px' : undefined,
                 }}
               />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <span style={{ fontFamily: MONO, fontSize: '9px', color: C.textSecondary, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+                  MODEL
+                </span>
+                <select
+                  value={selectedModel}
+                  onChange={e => setSelectedModel(e.target.value)}
+                  style={{
+                    flex: 1, background: C.elevated, border: `1px solid ${C.border}`,
+                    color: C.textPrimary, fontFamily: MONO, fontSize: '10px',
+                    padding: '5px 8px', outline: 'none', cursor: 'pointer',
+                  }}
+                >
+                  {MODELS.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
               <button
                 onClick={handleRun}
                 disabled={!prompt.trim()}
