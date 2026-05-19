@@ -10,7 +10,7 @@ Nine possible verdicts: REJECT / PILOT FIRST / PROCEED / PROCEED WITH SAFEGUARDS
 
 ## Use the hosted version
 
-No installation. No account. Enter your Anthropic API key, load a prompt, run it.
+No installation. No signup. Bring your own Anthropic API key, load a prompt, run it.
 
 **[https://azimuth-testbed.netlify.app](https://azimuth-testbed.netlify.app)**
 

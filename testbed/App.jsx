@@ -847,9 +847,10 @@ export default function App() {
           padding: '10px 20px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
           background: C.surface,
         }}>
-          <span style={{ fontFamily: MONO, fontSize: '13px', color: C.gold, letterSpacing: '0.14em' }}>
+          <a href="https://mrbinnacle.github.io/azimuth/" target="_blank" rel="noopener noreferrer"
+             style={{ fontFamily: MONO, fontSize: '13px', color: C.gold, letterSpacing: '0.14em', textDecoration: 'none' }}>
             AZIMUTH
-          </span>
+          </a>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {/* TODO: replace '#' with article URL when published */}
             <a href="#" target="_blank" rel="noopener noreferrer"
