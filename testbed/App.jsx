@@ -350,11 +350,12 @@ const GHOST_BTN = {
 const PANEL_BORDER = { borderRight: `1px solid ${C.border}` }
 
 // ─── Verdict helpers ──────────────────────────────────────────────────────────
-const VERDICT_RE = /\b(REJECT|PILOT FIRST|PROCEED WITH SAFEGUARDS|PROCEED|REDUCE SCOPE|DELAY PENDING EVIDENCE|INSUFFICIENT SIGNAL)\b/i
-
 function extractVerdict(text) {
-  const m = text.match(VERDICT_RE)
-  return m ? m[1].toUpperCase() : 'UNKNOWN'
+  const labeled = text.match(/(?:verdict|recommended\s+decision)\s*:?\s*\**\s*(REJECT|PILOT FIRST|PROCEED WITH SAFEGUARDS|PROCEED|REDUCE SCOPE|DELAY PENDING EVIDENCE|INSUFFICIENT SIGNAL)\b/i)
+  if (labeled) return labeled[1].toUpperCase()
+  const standalone = text.match(/^(REJECT|PILOT FIRST|PROCEED WITH SAFEGUARDS|PROCEED|REDUCE SCOPE|DELAY PENDING EVIDENCE|INSUFFICIENT SIGNAL)$/im)
+  if (standalone) return standalone[1].toUpperCase()
+  return 'UNKNOWN'
 }
 
 function extractConfidence(text) {
