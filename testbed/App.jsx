@@ -717,6 +717,73 @@ function SectionLabel({ text }) {
   )
 }
 
+// ─── Orientation banner (P1.7 cold-read context) ─────────────────────────────
+// Renders blocks 1 (orientation), 3 (how to read), and 6 (footer / what next)
+// from the external-facing copy bundle. Dismissible per-session.
+function OrientationBanner({ onClose }) {
+  const card = {
+    border: `1px solid ${C.border}`, background: C.surface,
+    padding: '12px 14px', fontFamily: MONO, fontSize: '11px',
+    color: C.textPrimary, lineHeight: 1.65, letterSpacing: '0.02em',
+  }
+  const h = {
+    fontFamily: SANS, fontSize: '10px', color: C.gold,
+    letterSpacing: '0.14em', textTransform: 'uppercase',
+    marginBottom: '6px',
+  }
+  return (
+    <div style={{
+      flexShrink: 0, padding: '12px 20px', borderBottom: `1px solid ${C.border}`,
+      background: C.bg, maxHeight: '38vh', overflowY: 'auto',
+    }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '10px',
+      }}>
+        <div style={card}>
+          <div style={h}>What you're looking at</div>
+          This is a hosted testbed for <strong style={{ color: C.gold }}>AZIMUTH</strong>, a Claude Code skill for vetting consequential decisions before they ship. The runs below show real model output applied retroactively to Boeing's 2011 decision to retrofit the 737, using a decision brief constructed from pre-2011 evidence only. The goal isn't to declare the methodology right or wrong — it's to show how its verdicts and confidence track the evidence stack across hostile conditions.
+          <div style={{ marginTop: '8px', color: C.textSecondary, fontSize: '10.5px' }}>
+            You don't need an API key to read existing runs. A key is only required to run a new prompt yourself; it never leaves your browser and clears on tab close.
+          </div>
+        </div>
+
+        <div style={card}>
+          <div style={h}>How to read this output</div>
+          <strong style={{ color: C.gold }}>Verdict.</strong> Drawn from a fixed taxonomy: PROCEED · PROCEED WITH SAFEGUARDS · PILOT FIRST · REDUCE SCOPE · DELAY PENDING EVIDENCE · REJECT · INSUFFICIENT SIGNAL · WRONG TOOL · RESIDUAL-RISK-REGISTER.
+          <div style={{ marginTop: '6px' }}>
+            <strong style={{ color: C.gold }}>Confidence.</strong> Capped by evidence quality. When the evidence stack is thin or the prompt is adversarial, confidence is capped low — not abandoned. A low-confidence DELAY is a more honest output than a high-confidence PROCEED on thin evidence.
+          </div>
+          <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
+            This testbed is a calibration exhibit on a known-outcome failure, not a benchmark or validation. It does not claim AZIMUTH would have prevented anything.
+          </div>
+        </div>
+
+        <div style={card}>
+          <div style={h}>What next</div>
+          <strong style={{ color: C.gold }}>Run your own decision.</strong> Install AZIMUTH from{' '}
+          <a href="https://github.com/MrBinnacle/azimuth" target="_blank" rel="noopener noreferrer"
+             style={{ color: C.gold, textDecoration: 'underline' }}>
+            github.com/MrBinnacle/azimuth
+          </a>. The skill runs inside Claude Code; this testbed is a hosted alternative for kicking tires without installing anything.
+          <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
+            Methodology article and feedback channel land here when P1.2 / P1.5 ship.
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop: '8px', textAlign: 'right' }}>
+        <button
+          onClick={onClose}
+          style={{ ...GHOST_BTN, fontSize: '9px', padding: '4px 12px' }}
+        >
+          ✕ HIDE
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -735,6 +802,7 @@ export default function App() {
   const [compareMode, setCompareMode] = useState(false)
   const runCounterRef = useRef(1)
   const [selectedModel, setSelectedModel] = useState(MODELS[0].id)
+  const [orientationOpen, setOrientationOpen] = useState(true)
 
   const windowWidth = useWindowWidth()
   const isNarrow = windowWidth < 1200
@@ -853,6 +921,14 @@ export default function App() {
             AZIMUTH
           </a>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            {!orientationOpen && (
+              <button
+                onClick={() => setOrientationOpen(true)}
+                style={{ ...GHOST_BTN, fontSize: '9px', padding: '4px 10px' }}
+              >
+                ABOUT
+              </button>
+            )}
             <span style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary }}>
               {runs.length} run{runs.length !== 1 ? 's' : ''}
             </span>
@@ -864,6 +940,8 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {orientationOpen && <OrientationBanner onClose={() => setOrientationOpen(false)} />}
 
         {/* ── Main ───────────────────────────────────────────────────────── */}
         <div style={{
@@ -877,6 +955,28 @@ export default function App() {
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             background: C.surface, ...PANEL_BORDER,
           }}>
+            {/* Boeing case preamble (P1.7) */}
+            <div style={{
+              padding: '12px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+              background: C.bg,
+            }}>
+              <div style={{
+                fontFamily: SANS, fontSize: '9.5px', color: C.gold,
+                letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '6px',
+              }}>
+                Case: Boeing 737 MAX
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: '10.5px', color: C.textPrimary, lineHeight: 1.55 }}>
+                <strong style={{ color: C.gold }}>Decision:</strong> Boeing's 2011 choice to retrofit the existing 737 airframe to compete with the A320neo. The retrofit required the MCAS automated trim system and was marketed as requiring no new pilot training.
+                <div style={{ marginTop: '6px' }}>
+                  <strong style={{ color: C.gold }}>Outcome:</strong> Two fatal crashes (2018, 2019). 346 deaths. Fleet grounding. $20B+ direct losses.
+                </div>
+                <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10px' }}>
+                  Runs below use a brief constructed from pre-2011 evidence only. Look for verdict behavior across full framing, thin prompt, and adversarial prompt conditions.
+                </div>
+              </div>
+            </div>
+
             {/* Variants */}
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
               <SectionLabel text="PROMPT VARIANTS" />
