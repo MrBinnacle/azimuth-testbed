@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { extractVerdict, extractConfidence } from './extraction.js'
 
 // ─── AZIMUTH System Prompt — verbatim SKILL.md ───────────────────────────────
 const AZIMUTH_SYSTEM_PROMPT = `---
@@ -350,20 +351,8 @@ const GHOST_BTN = {
 const PANEL_BORDER = { borderRight: `1px solid ${C.border}` }
 
 // ─── Verdict helpers ──────────────────────────────────────────────────────────
-function extractVerdict(text) {
-  const labeled = text.match(/(?:verdict|recommended\s+decision)\s*:?\s*\**\s*(REJECT|PILOT FIRST|PROCEED WITH SAFEGUARDS|PROCEED|REDUCE SCOPE|DELAY PENDING EVIDENCE|INSUFFICIENT SIGNAL)\b/i)
-  if (labeled) return labeled[1].toUpperCase()
-  const standalone = text.match(/^(REJECT|PILOT FIRST|PROCEED WITH SAFEGUARDS|PROCEED|REDUCE SCOPE|DELAY PENDING EVIDENCE|INSUFFICIENT SIGNAL)$/im)
-  if (standalone) return standalone[1].toUpperCase()
-  return 'UNKNOWN'
-}
-
-function extractConfidence(text) {
-  const idx = text.toLowerCase().indexOf('confidence')
-  if (idx === -1) return 'Unknown'
-  const m = text.slice(idx, idx + 200).match(/\b(High|Medium|Low)\b/i)
-  return m ? m[1] : 'Unknown'
-}
+// extractVerdict / extractConfidence live in ./extraction.js so the regression
+// harness (extraction.test.js) can lock their behavior. See P0.2.
 
 function verdictColor(verdict) {
   if (!verdict) return C.textSecondary
