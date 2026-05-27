@@ -4,7 +4,7 @@ Decision-quality pre-commitment analysis. You put in a decision. You get a real 
 
 AZIMUTH is a structured reasoning framework that stress-tests plans before commitment. It routes decisions through a ten-module engine — objective integrity, assumption audit, constraint reality check, incentive scan, dependency fragility, failure path construction, base rate analysis, detectability and recovery, mitigation design — and returns a verdict with confidence rating and explicit reasoning.
 
-Nine possible verdicts: REJECT / PILOT FIRST / PROCEED / PROCEED WITH SAFEGUARDS / REDUCE SCOPE / DELAY PENDING EVIDENCE / INSUFFICIENT SIGNAL.
+Verdicts are drawn from a fixed taxonomy: PROCEED · PROCEED WITH SAFEGUARDS · PILOT FIRST · REDUCE SCOPE · DELAY PENDING EVIDENCE · REJECT · INSUFFICIENT SIGNAL · WRONG TOOL · RESIDUAL-RISK-REGISTER. See the skill repo for when each fires.
 
 ---
 
@@ -38,7 +38,7 @@ The tool ships with three pre-loaded Boeing 737 MAX prompt variants. All methodo
 | 3 | Thin (parameters only) | Clean | REJECT | HIGH |
 | 4 | Adversarial (confident register) | Clean | DELAY PENDING EVIDENCE | LOW† |
 
-Verdict stable across full-framing and thin-prompt conditions. The adversarial run produced DELAY rather than REJECT because the confident framing omitted the penalty clause — the tool identified the missing structural information and asked for it rather than proceeding.
+Across these conditions: stable verdicts where evidence supports them; calibrated confidence when evidence is missing. The adversarial run produced DELAY rather than REJECT because the confident framing omitted the penalty clause — the tool identified the missing structural information and asked for it rather than proceeding.
 
 The thin prompt produced explicit MCAS pattern recognition from a prompt containing no company name, no aircraft name, no historical reference: "Base rate for this exact strategy succeeding without training requirement: 0% in the post-MAX regulatory environment."
 
