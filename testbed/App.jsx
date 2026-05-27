@@ -434,6 +434,7 @@ const RUN_0 = {
   confidence: 'Medium',
   date: '2026-05-19',
   model: 'claude-sonnet-4-20250514',
+  historical: true,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -634,6 +635,16 @@ function OutputDisplay({ run, loading }) {
         <div style={{ fontFamily: MONO, fontSize: '11px', color: C.textSecondary, letterSpacing: '0.05em' }}>
           {run.label} · {run.date}
         </div>
+        {run.historical && (
+          <div style={{
+            marginTop: '10px', padding: '8px 10px',
+            border: `1px solid ${C.goldDim}`, background: C.elevated,
+            fontFamily: MONO, fontSize: '10.5px', color: C.gold,
+            letterSpacing: '0.06em', lineHeight: 1.5,
+          }}>
+            Historical reference run (Sonnet, pre-v1.4.0). See Runs 2–4 for current Opus 4.5 methodology.
+          </div>
+        )}
       </div>
       {/* SECURITY: text node only — model output is untrusted; do not switch to dangerouslySetInnerHTML */}
       <pre style={{
