@@ -767,8 +767,20 @@ function OrientationBanner({ onClose }) {
              style={{ color: C.gold, textDecoration: 'underline' }}>
             github.com/MrBinnacle/azimuth
           </a>. The skill runs inside Claude Code; this testbed is a hosted alternative for kicking tires without installing anything.
+          <div style={{ marginTop: '8px' }}>
+            <strong style={{ color: C.gold }}>Feedback or questions.</strong>{' '}
+            <a href="https://github.com/MrBinnacle/azimuth-testbed/issues/new?template=feedback.yml"
+               target="_blank" rel="noopener noreferrer"
+               style={{ color: C.gold, textDecoration: 'underline' }}>
+              Open an issue
+            </a>{' '}or email{' '}
+            <a href="mailto:mlpgruber@gmail.com"
+               style={{ color: C.gold, textDecoration: 'underline' }}>
+              mlpgruber@gmail.com
+            </a>.
+          </div>
           <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
-            Methodology article and feedback channel land here when P1.2 / P1.5 ship.
+            Methodology article lands here when P1.2 ships.
           </div>
         </div>
       </div>

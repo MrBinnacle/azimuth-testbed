@@ -77,6 +77,12 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...
 
 ---
 
+## Feedback or questions
+
+Bug reports: [open an issue](https://github.com/MrBinnacle/azimuth-testbed/issues/new?template=bug_report.yml). Feedback, questions, or anything else: [open a feedback issue](https://github.com/MrBinnacle/azimuth-testbed/issues/new?template=feedback.yml) or email [mlpgruber@gmail.com](mailto:mlpgruber@gmail.com).
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
