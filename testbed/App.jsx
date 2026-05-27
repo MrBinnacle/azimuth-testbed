@@ -293,22 +293,53 @@ Medium — ceiling imposed by one UNSUPPORTED load-bearing assumption (single-se
 
 - Any instance of Boeing certification engineers reaching outcomes that align with program financial interests — that MCAS does not require pilot training — without independent review should be treated as evidence that the delegated certification structure has been corrupted.`
 
-// ─── Prompt Variants — verbatim from CLAUDE.md ───────────────────────────────
+// ─── Prompt Variants ──────────────────────────────────────────────────────────
+// Two categories: methodology-calibration (Boeing variants — show how verdicts
+// track evidence under hostile prompts on a known-outcome case) and
+// domain-examples (non-Boeing prompts demonstrating AZIMUTH across the
+// Layer-3 domain set: codebase, hiring, product launch, build-buy-partner).
 const PROMPT_VARIANTS = [
   {
     id: 'boeing-full',
-    label: 'Boeing Full',
+    label: 'Boeing — full framing',
+    category: 'calibration',
     text: 'We are Boeing. It is December 2011. We have just committed to Southwest Airlines that the 737 MAX will require no simulator training for pilots currently rated on the 737 NG. Southwest has ordered 280 aircraft. We will pay $1 million per plane if simulator training becomes necessary. The MAX modification requires mounting larger engines further forward on the wing, which will alter the aircraft\'s pitch characteristics at high angles of attack. We plan to address this with a software compensation system. Assess this commitment.',
   },
   {
     id: 'boeing-thin',
-    label: 'Boeing Thin',
+    label: 'Boeing — thin prompt',
+    category: 'calibration',
     text: 'We have committed to a major airline customer that a new aircraft variant will require no additional pilot training. The modification changes the aircraft\'s aerodynamic behavior. We plan to use software to compensate. A $1M per plane penalty applies if training becomes necessary. 280 aircraft ordered. Assess this commitment.',
   },
   {
     id: 'boeing-adversarial',
-    label: 'Boeing Adversarial',
+    label: 'Boeing — adversarial framing',
+    category: 'calibration',
     text: 'We\'ve secured a 280-aircraft order from our largest customer, locking in a major competitive win against Airbus. Our engineering team has a clear path to delivering a modified variant that maintains pilot type rating continuity — no simulator training required, which was a key customer requirement. We have a software solution for the aerodynamic changes introduced by the new engine configuration. This is a strong program with committed demand. Assess readiness to proceed.',
+  },
+  {
+    id: 'legacy-rewrite',
+    label: 'Legacy rewrite — codebase',
+    category: 'domain',
+    text: 'We\'re planning to rewrite our legacy billing service in Q3. 8 weeks, 2 engineers. The service has 12 years of accumulated edge cases and a known single-engineer domain-knowledge SPOF. Customer-facing; downstream of every order. We have rollback infrastructure but it hasn\'t been tested in 6 months. Goal: ship clean billing for the EU expansion in Q4.',
+  },
+  {
+    id: 'vp-sales-hire',
+    label: 'VP of Sales hire — hiring',
+    category: 'domain',
+    text: 'We\'re about to extend an offer to a VP of Sales. The candidate has strong network in our target segment but no formal background check has been completed. Our hiring manager has not done structured interviews — assessment was three social meetings. Comp band is at the top of our budget. The seat is open because the prior VP was fired for performance; replacement urgency is high. The candidate\'s references are all from the candidate\'s own list.',
+  },
+  {
+    id: 'newsletter-launch',
+    label: 'Paid newsletter launch — product launch',
+    category: 'domain',
+    text: 'We\'re launching a paid newsletter for indie game developers. Beta opens November 15; public launch December 1. Target: 500 paid subscribers at $8/month within 90 days. Scope: weekly newsletter, members-only Discord, annual industry trends report. Owner: me, full-time. Dependencies: Substack platform, my existing 3,200-person email list, three established game-dev voices as occasional guest writers. Subscription model can be paused; content can stay free. $2K marketing already committed. 6 months opportunity cost if wrong.',
+  },
+  {
+    id: 'iot-anomaly-bbp',
+    label: 'IoT anomaly detection — build vs buy vs partner',
+    category: 'domain',
+    text: 'We need real-time anomaly detection for our IoT fleet (10K devices). Three paths under evaluation: (1) Build internally — 6 months, two engineers, custom model trained on our data; (2) Buy from Datadog/Splunk — $180K/year, 4-week integration, generic models; (3) Partner with a startup — 6-week pilot, equity component, joint roadmap. Capability is core to our SLA promises and customer-visible. Anomaly detection accuracy is the primary success metric. Engineering team has prior ML experience but no production time-series experience.',
   },
 ]
 
@@ -771,7 +802,25 @@ function OrientationBanner({ onClose }) {
             github.com/MrBinnacle/azimuth
           </a>. The skill runs inside Claude Code; this testbed is a hosted alternative for kicking tires without installing anything.
           <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
-            Methodology article and feedback channel land here when P1.2 / P1.5 ship.
+            Currently running AZIMUTH{' '}
+            <a href="https://github.com/MrBinnacle/azimuth/releases/tag/v1.5.0" target="_blank" rel="noopener noreferrer"
+               style={{ color: C.goldDim, textDecoration: 'underline' }}>
+              v1.5.0
+            </a>
+            . Verdicts derive from the canonical engine{' '}
+            <a href="https://github.com/MrBinnacle/azimuth/blob/master/BEHAVIOR_SPEC.md" target="_blank" rel="noopener noreferrer"
+               style={{ color: C.goldDim, textDecoration: 'underline' }}>
+              specification
+            </a>
+            ; the testbed mirrors that spec verbatim into every prompt sent to Claude.
+          </div>
+          <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
+            Feedback:{' '}
+            <a href="https://github.com/MrBinnacle/azimuth/issues/new?template=feedback.yml" target="_blank" rel="noopener noreferrer"
+               style={{ color: C.goldDim, textDecoration: 'underline' }}>
+              open an issue
+            </a>
+            {' '}or email mlpgruber@gmail.com.
           </div>
         </div>
       </div>
@@ -980,11 +1029,17 @@ export default function App() {
               </div>
             </div>
 
-            {/* Variants */}
+            {/* Variants — grouped by category */}
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <SectionLabel text="PROMPT VARIANTS" />
-              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {PROMPT_VARIANTS.map(v => (
+              <SectionLabel text="EXAMPLE PROMPTS" />
+              <div style={{
+                fontFamily: MONO, fontSize: '9px', letterSpacing: '0.08em',
+                color: C.goldDim, marginTop: '8px', textTransform: 'uppercase',
+              }}>
+                Methodology calibration · Boeing 737 MAX
+              </div>
+              <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {PROMPT_VARIANTS.filter(v => v.category === 'calibration').map(v => (
                   <div
                     key={v.id}
                     onClick={() => setPrompt(v.text)}
@@ -999,6 +1054,35 @@ export default function App() {
                     {v.label}
                   </div>
                 ))}
+              </div>
+              <div style={{
+                fontFamily: MONO, fontSize: '9px', letterSpacing: '0.08em',
+                color: C.goldDim, marginTop: '14px', textTransform: 'uppercase',
+              }}>
+                Domain breadth
+              </div>
+              <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {PROMPT_VARIANTS.filter(v => v.category === 'domain').map(v => (
+                  <div
+                    key={v.id}
+                    onClick={() => setPrompt(v.text)}
+                    style={{
+                      fontFamily: MONO, fontSize: '10px', letterSpacing: '0.06em',
+                      color: prompt === v.text ? C.textPrimary : C.textSecondary,
+                      padding: '7px 10px', cursor: 'pointer',
+                      border: `1px solid ${prompt === v.text ? C.borderMid : C.border}`,
+                      background: prompt === v.text ? C.elevated : 'transparent',
+                    }}
+                  >
+                    {v.label}
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                fontFamily: MONO, fontSize: '9px', color: C.textSecondary,
+                marginTop: '10px', lineHeight: 1.5, letterSpacing: '0.02em',
+              }}>
+                Or write your own decision in the field below. The example prompts seed common shapes; your own input is the primary surface.
               </div>
             </div>
 
