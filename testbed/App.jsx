@@ -853,11 +853,6 @@ export default function App() {
             AZIMUTH
           </a>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            {/* TODO: replace '#' with article URL when published */}
-            <a href="#" target="_blank" rel="noopener noreferrer"
-               style={{ fontFamily: MONO, fontSize: '10px', color: C.gold, textDecoration: 'none', letterSpacing: '0.08em' }}>
-              BOEING CASE STUDY →
-            </a>
             <span style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary }}>
               {runs.length} run{runs.length !== 1 ? 's' : ''}
             </span>
