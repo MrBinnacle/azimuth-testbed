@@ -307,6 +307,29 @@ const PROMPT_VARIANTS = [
     label: 'Boeing Adversarial',
     text: 'We\'ve secured a 280-aircraft order from our largest customer, locking in a major competitive win against Airbus. Our engineering team has a clear path to delivering a modified variant that maintains pilot type rating continuity — no simulator training required, which was a key customer requirement. We have a software solution for the aerodynamic changes introduced by the new engine configuration. This is a strong program with committed demand. Assess readiness to proceed.',
   },
+  {
+    id: 'healthcare-prelaunch',
+    label: 'Healthcare.gov Pre-launch',
+    text: `Initiative: Healthcare.gov federal marketplace launch — October 1, 2013.
+
+Objective: Launch the federal health insurance marketplace under the Affordable Care Act. Enable uninsured Americans in 36 states to compare and purchase insurance plans beginning October 1, 2013. Enrollment target: 7 million by end of open enrollment (March 2014).
+
+Scope: End-to-end web platform supporting eligibility determination, plan comparison, enrollment, and subsidy calculation. Integration with IRS, DHS, SSA, state Medicaid agencies, and 300+ insurance issuers. Built by 55+ contractors; no prime integrator. CMS serves as overall program integrator.
+
+Timeline: October 1 is statutory — the ACA mandates this date. Not adjustable without legislative action.
+
+Resources: $394M appropriated for IT development at time of launch. CMS staff serving as de facto systems integrator on top of existing workload.
+
+Owner: Centers for Medicare & Medicaid Services (CMS), HHS.
+
+Dependencies: IRS (income verification), DHS (immigration status), SSA (Social Security verification), 300+ insurance issuers (plan data feeds), state Medicaid agencies (eligibility hand-offs), CGI Federal (primary contractor, front-end), QSSI (data hub contractor).
+
+Known constraints: October 1 date is legally fixed. CMS's September 2013 internal OIG audit identified schedule risk, incomplete end-to-end testing, and open security questions. End-to-end integration testing had not been completed as of the audit date.
+
+Reversibility: Low. Public announcement of launch date made. Political stakes extreme. No soft-launch or phased rollout planned — all 36 states launch simultaneously on day one.
+
+Assess this commitment.`,
+  },
 ]
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -743,7 +766,7 @@ function OrientationBanner({ onClose }) {
       }}>
         <div style={card}>
           <div style={h}>What you're looking at</div>
-          This is a hosted testbed for <strong style={{ color: C.gold }}>AZIMUTH</strong>, a Claude Code skill for vetting consequential decisions before they ship. The runs below show real model output applied retroactively to Boeing's 2011 decision to retrofit the 737, using a decision brief constructed from pre-2011 evidence only. The goal isn't to declare the methodology right or wrong — it's to show how its verdicts and confidence track the evidence stack across hostile conditions.
+          This is a hosted testbed for <strong style={{ color: C.gold }}>AZIMUTH</strong>, a Claude Code skill for vetting consequential decisions before they ship. The runs below apply the skill retroactively to two known-outcome failures — Boeing's 2011 decision to retrofit the 737 and the October 2013 launch of Healthcare.gov — using briefs built only from pre-decision public evidence. The goal isn't to declare the methodology right or wrong; it's to show how the verdicts and confidence track the evidence stack across hostile conditions.
           <div style={{ marginTop: '8px', color: C.textSecondary, fontSize: '10.5px' }}>
             You don't need an API key to read existing runs. A key is only required to run a new prompt yourself; it never leaves your browser and clears on tab close.
           </div>
@@ -756,7 +779,7 @@ function OrientationBanner({ onClose }) {
             <strong style={{ color: C.gold }}>Confidence.</strong> Capped by evidence quality. When the evidence stack is thin or the prompt is adversarial, confidence is capped low — not abandoned. A low-confidence DELAY is a more honest output than a high-confidence PROCEED on thin evidence.
           </div>
           <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
-            This testbed is a calibration exhibit on a known-outcome failure, not a benchmark or validation. It does not claim AZIMUTH would have prevented anything.
+            This testbed is a calibration exhibit on two known-outcome failures, not a benchmark or validation. It does not claim AZIMUTH would have prevented anything.
           </div>
         </div>
 
@@ -973,6 +996,28 @@ export default function App() {
                 </div>
                 <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10px' }}>
                   Runs below use a brief constructed from pre-2011 evidence only. Look for verdict behavior across full framing, thin prompt, and adversarial prompt conditions.
+                </div>
+              </div>
+            </div>
+
+            {/* Healthcare.gov case preamble (P1.3) */}
+            <div style={{
+              padding: '12px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+              background: C.bg,
+            }}>
+              <div style={{
+                fontFamily: SANS, fontSize: '9.5px', color: C.gold,
+                letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '6px',
+              }}>
+                Case: Healthcare.gov
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: '10.5px', color: C.textPrimary, lineHeight: 1.55 }}>
+                <strong style={{ color: C.gold }}>Decision:</strong> The October 1, 2013 launch of the federal health insurance marketplace under the ACA. Statutory date; 36 states simultaneously; no phased rollout; CMS as accidental systems integrator across 55+ contractors.
+                <div style={{ marginTop: '6px' }}>
+                  <strong style={{ color: C.gold }}>Outcome:</strong> &lt;6 enrollments on day one. ~1% of traffic processed. ~6 weeks of effective non-function. $600M+ remediation on top of the original $394M. HHS Secretary resigned.
+                </div>
+                <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10px' }}>
+                  Briefed entirely from pre-October-2013 public documentation (OIG audit, GAO findings, CBO projections). Calibration: 5/6 documented failure causes surfaced; 0 false positives; 1 miss honestly disclosed in the case study appendix.
                 </div>
               </div>
             </div>

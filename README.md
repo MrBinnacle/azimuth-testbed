@@ -28,9 +28,13 @@ This is a static React app. The Anthropic API call goes from your browser to `ap
 
 ---
 
-## The Boeing methodology runs
+## Methodology calibration — two cases
 
-The tool ships with three pre-loaded Boeing 737 MAX prompt variants. All methodology runs on `claude-opus-4-5`.
+The testbed ships with two known-outcome decisions pre-loaded: Boeing's 2011 retrofit choice (the 737 MAX) and the October 2013 Healthcare.gov launch. AZIMUTH is applied retroactively to briefs constructed only from pre-decision public evidence. The goal isn't to claim AZIMUTH would have prevented either outcome — it's to show how the verdict and confidence track the evidence across hostile prompts.
+
+### Boeing 737 MAX
+
+Three prompt variants. All methodology runs on `claude-opus-4-5`.
 
 | Run | Prompt | Context | Verdict | Confidence |
 |---|---|---|---|---|
@@ -47,6 +51,12 @@ The irreconcilable structure is visible in the decision parameters alone.
 † Opus 4.5 applied the M10 confidence ceiling more aggressively to sparse-evidence inputs; the verdict is stable, the confidence calibration is arguably more precise.
 
 **Run 1 (full framing, contaminated context):** AZIMUTH paused at the M4 PRE-CHECK and issued a structured three-question interview rather than proceeding to verdict — a different protocol path from implicit session contamination in earlier Sonnet 4 runs. Methodologically significant as evidence that explicit context pre-loading and implicit session contamination trigger different protocol behavior; excluded from the main table because the finding is about protocol behavior, not the Boeing decision analysis.
+
+### Healthcare.gov
+
+A single pre-launch decision brief, built entirely from pre-October-2013 public documentation (the September 2013 OIG audit, GAO findings, CBO projections). AZIMUTH returns `DELAY PENDING EVIDENCE`. Calibration against the documented post-mortem: **5/6 documented failure causes surfaced; 0 false positives across 4 Critical Risks; 1 miss honestly disclosed** in the case study appendix (`examples/case-study-healthcare-gov.md` in the skill repo).
+
+The miss matters more than the hits — over-claiming "AZIMUTH caught Healthcare.gov" would be a credibility tax that the artifact pays for. The honest disclosure is the point.
 
 ---
 
