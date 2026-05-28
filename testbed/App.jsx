@@ -785,7 +785,7 @@ export default function App() {
                   <strong style={{ color: C.gold }}>Outcome:</strong> Two crashes (2018, 2019). 346 deaths. Worldwide grounding. $20B+ in losses.
                 </div>
                 <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10px' }}>
-                  The three runs below are the same decision told three ways — full brief, bare facts, and optimistic spin — using only what was knowable in 2011. Watch the verdict hold across all three.
+                  The three Boeing runs in the log are the same decision told three ways — full brief, bare facts, and optimistic spin — using only what was knowable in 2011. The verdict holds REJECT across all three.
                 </div>
               </div>
             </div>
