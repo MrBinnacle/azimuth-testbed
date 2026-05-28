@@ -840,7 +840,7 @@ export default function App() {
           {/* LEFT — variants + input + run */}
           <div style={{
             width: isNarrow ? '100%' : '300px', flexShrink: 0,
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
             background: C.surface, ...PANEL_BORDER,
           }}>
             {/* Boeing case preamble (P1.7) */}
@@ -865,43 +865,21 @@ export default function App() {
               </div>
             </div>
 
-            {/* Variants */}
+            {/* Input — the primary surface, kept above the examples */}
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <SectionLabel text="SAME DECISION, THREE FRAMINGS" />
-              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {PROMPT_VARIANTS.filter(v => v.category === 'calibration').map(v => (
-                  <PromptVariantRow key={v.id} variant={v} active={prompt === v.text} onClick={() => setPrompt(v.text)} />
-                ))}
-              </div>
-              <div style={{ marginTop: '16px' }}>
-                <SectionLabel text="OR A DECISION OF YOUR OWN" />
-              </div>
-              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {PROMPT_VARIANTS.filter(v => v.category === 'domain').map(v => (
-                  <PromptVariantRow key={v.id} variant={v} active={prompt === v.text} onClick={() => setPrompt(v.text)} />
-                ))}
-              </div>
-              <div style={{ marginTop: '10px', fontFamily: MONO, fontSize: '10px', color: C.textSecondary, lineHeight: 1.55 }}>
-                These examples seed common shapes (a rewrite, a hire, a launch, a build-vs-buy call). Your own decision, typed below, is the point.
-              </div>
+              <SectionLabel text="YOUR DECISION" />
             </div>
-
-            {/* Input */}
-            <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <SectionLabel text="DECISION PROMPT" />
-            </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 14px', gap: '10px', overflow: 'hidden' }}>
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '12px 14px', gap: '10px' }}>
               <textarea
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => { if (e.ctrlKey && e.key === 'Enter') handleRun() }}
-                placeholder="Describe a decision you're about to commit to, then press Run..."
+                placeholder="Describe a decision you're about to commit to, then press Run. (Or load an example below.)"
                 style={{
-                  flex: 1, resize: 'none', background: C.elevated,
+                  resize: 'vertical', minHeight: '150px', background: C.elevated,
                   border: `1px solid ${C.border}`, color: C.textPrimary,
                   fontFamily: MONO, fontSize: '13px', lineHeight: 1.7,
                   padding: '12px',
-                  minHeight: isNarrow ? '100px' : undefined,
                 }}
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -925,6 +903,7 @@ export default function App() {
               <button
                 onClick={handleRun}
                 disabled={isRunDisabled}
+                title={!apiKey ? 'Add your Anthropic key when prompted, then it runs.' : undefined}
                 style={{
                   background: isRunDisabled ? C.elevated : C.gold,
                   color: isRunDisabled ? C.textSecondary : '#0C0C0E',
@@ -934,8 +913,29 @@ export default function App() {
                   flexShrink: 0,
                 }}
               >
-                {loading ? 'ANALYZING — click to restart' : 'RUN — ⌃↵'}
+                {loading ? 'ANALYZING — click to restart' : (isRunDisabled ? 'RUN — load or type a decision' : (apiKey ? 'RUN — ⌃↵' : 'RUN — adds your key first'))}
               </button>
+            </div>
+
+            {/* Examples — secondary, below the input */}
+            <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+              <SectionLabel text="EXAMPLES — BOEING, THREE FRAMINGS" />
+              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {PROMPT_VARIANTS.filter(v => v.category === 'calibration').map(v => (
+                  <PromptVariantRow key={v.id} variant={v} active={prompt === v.text} onClick={() => setPrompt(v.text)} />
+                ))}
+              </div>
+              <div style={{ marginTop: '16px' }}>
+                <SectionLabel text="EXAMPLES — OTHER DOMAINS" />
+              </div>
+              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {PROMPT_VARIANTS.filter(v => v.category === 'domain').map(v => (
+                  <PromptVariantRow key={v.id} variant={v} active={prompt === v.text} onClick={() => setPrompt(v.text)} />
+                ))}
+              </div>
+              <div style={{ marginTop: '10px', fontFamily: MONO, fontSize: '10px', color: C.textSecondary, lineHeight: 1.55 }}>
+                Click any example to load it into the field above. Your own decision is the point.
+              </div>
             </div>
           </div>
 
