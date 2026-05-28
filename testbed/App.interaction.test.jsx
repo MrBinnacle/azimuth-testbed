@@ -4,9 +4,9 @@ import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { createElement } from 'react'
 
-// Real DOM interaction test: does clicking an example fill the field and enable
-// RUN, and does RUN (with no key) open the key dialog? This reproduces what a
-// visitor does, so "buttons do nothing" is testable rather than guessed at.
+// Real DOM interaction test: does clicking an example fill the field and arm RUN,
+// does RUN with no key open the key dialog, and does clicking RUN while empty
+// guide the user (focus the field) instead of doing nothing?
 
 function fireClick(el) {
   el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -15,55 +15,46 @@ function fireClick(el) {
 let container
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  // jsdom provides window/document; stub fetch so a RUN never hits the network.
   globalThis.fetch = vi.fn(() => new Promise(() => {}))
+  window.HTMLElement.prototype.scrollIntoView = vi.fn() // jsdom has no scrollIntoView
+  document.body.innerHTML = '' // isolate: drop any container/modal from a prior test
   container = document.createElement('div')
   document.body.appendChild(container)
 })
 
 async function mountApp() {
   const { default: App } = await import('./App.jsx')
-  let root
-  await act(async () => {
-    root = createRoot(container)
-    root.render(createElement(App))
-  })
-  return root
+  await act(async () => { createRoot(container).render(createElement(App)) })
 }
 
+const runButton = () => [...container.querySelectorAll('button')].find(b => b.textContent.startsWith('RUN'))
+const exampleRow = label => [...container.querySelectorAll('div')].find(d => d.textContent === label)
+
 describe('App interaction (jsdom)', () => {
-  it('clicking an example fills the decision field and enables RUN', async () => {
+  it('clicking an example fills the decision field and arms RUN', async () => {
     await mountApp()
-
     const textarea = container.querySelector('textarea')
-    expect(textarea).toBeTruthy()
     expect(textarea.value).toBe('')
+    expect(runButton().textContent).toContain('load or type a decision')
 
-    const runBtn = [...container.querySelectorAll('button')].find(b => b.textContent.startsWith('RUN'))
-    expect(runBtn).toBeTruthy()
-    expect(runBtn.disabled).toBe(true) // empty field → disabled
+    await act(async () => { fireClick(exampleRow('Boeing — bare facts')) })
 
-    // Find the "Boeing — bare facts" example row and click it.
-    const example = [...container.querySelectorAll('div')].find(d => d.textContent === 'Boeing — bare facts')
-    expect(example).toBeTruthy()
-    await act(async () => { fireClick(example) })
-
-    // The field should now hold the bare-facts prompt, and RUN should be enabled.
     expect(textarea.value.startsWith('We have committed to a major airline customer')).toBe(true)
-    expect(runBtn.disabled).toBe(false)
+    expect(runButton().textContent).not.toContain('load or type a decision')
   })
 
-  it('clicking RUN with no key opens the key dialog', async () => {
+  it('clicking RUN with no key (after loading a decision) opens the key dialog', async () => {
     await mountApp()
-
-    const example = [...container.querySelectorAll('div')].find(d => d.textContent === 'Boeing — full brief')
-    await act(async () => { fireClick(example) })
-
-    const runBtn = [...container.querySelectorAll('button')].find(b => b.textContent.startsWith('RUN'))
-    expect(runBtn.disabled).toBe(false)
-    await act(async () => { fireClick(runBtn) })
-
-    // No key set → the dialog should appear.
+    await act(async () => { fireClick(exampleRow('Boeing — full brief')) })
+    await act(async () => { fireClick(runButton()) })
     expect(document.body.textContent).toContain('RUN YOUR OWN DECISION')
+  })
+
+  it('clicking RUN while empty focuses the field and does NOT open the dialog', async () => {
+    await mountApp()
+    const textarea = container.querySelector('textarea')
+    await act(async () => { fireClick(runButton()) })
+    expect(document.activeElement).toBe(textarea)
+    expect(document.body.textContent).not.toContain('RUN YOUR OWN DECISION')
   })
 })

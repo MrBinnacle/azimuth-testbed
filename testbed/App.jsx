@@ -610,10 +610,13 @@ export default function App() {
   const pendingRunRef = useRef(false)
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL)
   const [orientationOpen, setOrientationOpen] = useState(true)
+  const [flashExamples, setFlashExamples] = useState(false)
 
   const windowWidth = useWindowWidth()
   const isNarrow = windowWidth < 1200
   const abortRef = useRef(null)
+  const textareaRef = useRef(null)
+  const examplesRef = useRef(null)
 
   const executeRun = useCallback(async (key) => {
     if (!prompt.trim()) return
@@ -673,7 +676,14 @@ export default function App() {
   }, [prompt, selectedModel])
 
   const handleRun = useCallback(() => {
-    if (!prompt.trim()) return
+    if (!prompt.trim()) {
+      // Never a dead click: guide the user to give it a decision.
+      textareaRef.current?.focus()
+      examplesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      setFlashExamples(true)
+      setTimeout(() => setFlashExamples(false), 900)
+      return
+    }
     if (!apiKey) { pendingRunRef.current = true; setKeyModalOpen(true); return }
     executeRun(apiKey)
   }, [prompt, apiKey, executeRun])
@@ -796,6 +806,7 @@ export default function App() {
             </div>
             <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '12px 14px', gap: '10px' }}>
               <textarea
+                ref={textareaRef}
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => { if (e.ctrlKey && e.key === 'Enter') handleRun() }}
@@ -827,15 +838,14 @@ export default function App() {
               </div>
               <button
                 onClick={handleRun}
-                disabled={isRunDisabled}
-                title={!apiKey ? 'Add your Anthropic key when prompted, then it runs.' : undefined}
+                title={isRunDisabled ? 'Load an example or type a decision first.' : (!apiKey ? 'Add your Anthropic key when prompted, then it runs.' : undefined)}
                 style={{
                   background: isRunDisabled ? C.elevated : C.gold,
                   color: isRunDisabled ? C.textSecondary : '#0C0C0E',
-                  border: 'none', fontFamily: MONO, fontSize: '11px',
+                  border: `1px solid ${isRunDisabled ? C.border : C.gold}`,
+                  fontFamily: MONO, fontSize: '11px',
                   letterSpacing: '0.1em', padding: '11px',
-                  cursor: isRunDisabled ? 'default' : 'pointer',
-                  flexShrink: 0,
+                  cursor: 'pointer', flexShrink: 0,
                 }}
               >
                 {loading ? 'ANALYZING — click to restart' : (isRunDisabled ? 'RUN — load or type a decision' : (apiKey ? 'RUN — ⌃↵' : 'RUN — adds your key first'))}
@@ -843,7 +853,14 @@ export default function App() {
             </div>
 
             {/* Examples — secondary, below the input */}
-            <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <div
+              ref={examplesRef}
+              style={{
+                padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+                background: flashExamples ? 'rgba(201,168,76,0.10)' : 'transparent',
+                transition: 'background 0.5s cubic-bezier(0.22,1,0.36,1)',
+              }}
+            >
               <SectionLabel text="EXAMPLES — BOEING, THREE FRAMINGS" />
               <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {PROMPT_VARIANTS.filter(v => v.category === 'calibration').map(v => (
