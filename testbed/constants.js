@@ -57,5 +57,3 @@ export const MODELS = [
 ]
 
 export const DEFAULT_MODEL = MODELS[0].id
-
-export const ALL_TAGS = ['fresh-context', 'thin-prompt', 'adversarial', 'full-framing', 'contaminated']

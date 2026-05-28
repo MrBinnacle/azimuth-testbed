@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { extractVerdict, extractConfidence } from './extraction.js'
 import { runAzimuth } from './azimuth-engine.js'
-import { PROMPT_VARIANTS, MODELS, ALL_TAGS, DEFAULT_MODEL } from './constants.js'
+import { PROMPT_VARIANTS, MODELS, DEFAULT_MODEL } from './constants.js'
 import skillBundle from './skill-bundle.json'
 import prestagedRuns from './prestaged-runs.json'
 
@@ -181,18 +181,6 @@ function verdictColor(verdict) {
   return C.verdictInsufficient
 }
 
-// ─── Diff helper ──────────────────────────────────────────────────────────────
-function diffLines(a, b) {
-  const aLines = a.split('\n')
-  const bLines = b.split('\n')
-  const bSet = new Set(bLines)
-  const aSet = new Set(aLines)
-  return {
-    aAnnotated: aLines.map(l => ({ text: l, diff: !bSet.has(l) })),
-    bAnnotated: bLines.map(l => ({ text: l, diff: !aSet.has(l) })),
-  }
-}
-
 // ─── Download helper ──────────────────────────────────────────────────────────
 function download(filename, content, type = 'text/plain') {
   const blob = new Blob([content], { type })
@@ -211,7 +199,6 @@ function exportRunMd(run) {
     `Model: ${run.model || 'unknown'}`,
     `Verdict: ${run.verdict}`,
     `Confidence: ${run.confidence}`,
-    `Tags: ${run.tags.join(', ') || 'none'}`,
     '',
     '## Prompt',
     '',
@@ -365,74 +352,30 @@ function ConfTag({ conf }) {
   )
 }
 
-function TagChip({ tag, active, onClick }) {
-  return (
-    <span
-      onClick={onClick}
-      style={{
-        fontFamily: MONO, fontSize: '9px', letterSpacing: '0.05em',
-        color: active ? C.gold : C.textSecondary,
-        border: `1px solid ${active ? C.goldDim : C.border}`,
-        padding: '2px 5px', cursor: 'pointer', userSelect: 'none', display: 'inline-block',
-      }}
-    >
-      {tag}
-    </span>
-  )
-}
-
-function RunCard({ run, isActive, isSelected, onSelect, onView, onLabelChange, onTagToggle, onExport }) {
+function RunCard({ run, isActive, onView, onExport }) {
   return (
     <div
       onClick={() => onView(run)}
       style={{
         background: isActive ? C.elevated : C.surface,
-        border: `1px solid ${isSelected ? C.gold : isActive ? C.borderMid : C.border}`,
+        border: `1px solid ${isActive ? C.borderMid : C.border}`,
         padding: '12px', marginBottom: '6px', cursor: 'pointer',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onSelect(run)}
-          onClick={e => e.stopPropagation()}
-          style={{ marginTop: '2px', accentColor: C.gold, flexShrink: 0 }}
-        />
-        <span
-          contentEditable
-          suppressContentEditableWarning
-          onBlur={e => onLabelChange(run.id, e.currentTarget.textContent.trim().slice(0, 200))}
-          onClick={e => e.stopPropagation()}
-          style={{
-            fontFamily: MONO, fontSize: '11px', color: C.textPrimary,
-            wordBreak: 'break-word', flex: 1,
-          }}
-        >
-          {run.label}
-        </span>
+      <div style={{ fontFamily: MONO, fontSize: '11px', color: C.textPrimary, wordBreak: 'break-word', marginBottom: '8px' }}>
+        {run.label}
       </div>
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
         <VerdictTag verdict={run.verdict} />
         <ConfTag conf={run.confidence} />
         <span style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary, marginLeft: 'auto' }}>
           {run.date}
         </span>
       </div>
-      {run.model && (
-        <div style={{ fontFamily: MONO, fontSize: '9px', color: C.textSecondary, letterSpacing: '0.06em', marginBottom: '6px', opacity: 0.7 }}>
-          {run.model}
-        </div>
-      )}
-      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '10px' }}>
-        {ALL_TAGS.map(t => (
-          <TagChip
-            key={t} tag={t} active={run.tags.includes(t)}
-            onClick={e => { e.stopPropagation(); onTagToggle(run.id, t) }}
-          />
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+        <span style={{ fontFamily: MONO, fontSize: '9px', color: C.textSecondary, letterSpacing: '0.06em', opacity: 0.7 }}>
+          {run.model || ''}
+        </span>
         <button
           onClick={e => { e.stopPropagation(); onExport(run) }}
           style={{ ...GHOST_BTN, padding: '2px 8px' }}
@@ -447,6 +390,43 @@ function RunCard({ run, isActive, isSelected, onSelect, onView, onLabelChange, o
 function loadedFileList(toolsLoaded) {
   const reads = (toolsLoaded || []).filter(p => p !== 'list_files')
   return Array.from(new Set(reads))
+}
+
+function InstallCTA() {
+  const [copied, setCopied] = useState(false)
+  const cmd = 'npx skills add https://github.com/MrBinnacle/azimuth'
+  const copy = () => {
+    navigator.clipboard?.writeText(cmd)
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+      .catch(() => {})
+  }
+  return (
+    <div style={{ marginTop: '28px', border: `1px solid ${C.goldDim}`, background: C.surface, padding: '16px 18px' }}>
+      <div style={{ fontFamily: SANS, fontSize: '10px', color: C.gold, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '8px' }}>
+        That was the real skill, running live
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: '12px', color: C.textPrimary, lineHeight: 1.6, marginBottom: '12px' }}>
+        Install AZIMUTH in Claude Code to run it on every decision you make, not just here.
+      </div>
+      <div style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${C.borderMid}`, background: C.elevated, maxWidth: '100%' }}>
+        <code style={{ fontFamily: MONO, fontSize: '12px', color: C.textPrimary, padding: '9px 14px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+          <span style={{ color: C.gold, userSelect: 'none' }}>$ </span>{cmd}
+        </code>
+        <button
+          onClick={copy}
+          style={{ background: C.elevated, border: 'none', borderLeft: `1px solid ${C.border}`, color: copied ? C.verdictProceed : C.textSecondary, fontFamily: MONO, fontSize: '10px', letterSpacing: '0.08em', padding: '0 14px', cursor: 'pointer', flexShrink: 0 }}
+        >
+          {copied ? 'COPIED' : 'COPY'}
+        </button>
+      </div>
+      <div style={{ marginTop: '10px', fontFamily: MONO, fontSize: '10px', color: C.textSecondary }}>
+        Runs in Claude Code and Claude.ai.{' '}
+        <a href="https://github.com/MrBinnacle/azimuth" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, textDecoration: 'none' }}>
+          github.com/MrBinnacle/azimuth
+        </a>
+      </div>
+    </div>
+  )
 }
 
 function OutputDisplay({ run, loading, progress }) {
@@ -512,58 +492,7 @@ function OutputDisplay({ run, loading, progress }) {
       }}>
         {run.output}
       </pre>
-    </div>
-  )
-}
-
-function CompareView({ runA, runB, onClose }) {
-  const { aAnnotated, bAnnotated } = diffLines(runA.output, runB.output)
-  const diffLine = (l, i) => (
-    <span
-      key={i}
-      style={{
-        display: 'block', fontFamily: MONO, fontSize: '12px', lineHeight: 1.65,
-        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-        background: l.diff ? 'rgba(196,92,92,0.07)' : 'transparent',
-        color: l.diff ? '#D9A0A0' : C.textPrimary,
-      }}
-    >
-      {l.text}
-    </span>
-  )
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: C.bg, zIndex: 50,
-      display: 'flex', flexDirection: 'column',
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 20px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
-      }}>
-        <span style={{ fontFamily: MONO, fontSize: '11px', color: C.gold, letterSpacing: '0.1em' }}>
-          COMPARISON — lines unique to each run highlighted
-        </span>
-        <button
-          onClick={onClose}
-          style={{ ...GHOST_BTN, fontSize: '10px', padding: '4px 14px' }}
-        >
-          CLOSE
-        </button>
-      </div>
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', gap: '1px', background: C.border }}>
-        {[{ run: runA, ann: aAnnotated }, { run: runB, ann: bAnnotated }].map(({ run, ann }) => (
-          <div key={run.id} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', background: C.surface }}>
-            <div style={{ fontFamily: MONO, fontSize: '10px', color: C.gold, letterSpacing: '0.08em', marginBottom: '10px' }}>
-              {run.label}
-            </div>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-              <VerdictTag verdict={run.verdict} />
-              <ConfTag conf={run.confidence} />
-            </div>
-            {ann.map(diffLine)}
-          </div>
-        ))}
-      </div>
+      {run.userRun && <InstallCTA />}
     </div>
   )
 }
@@ -666,8 +595,6 @@ export default function App() {
   const [activeRun, setActiveRun] = useState(null)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState([])
-  const [selectedIds, setSelectedIds] = useState([])
-  const [compareMode, setCompareMode] = useState(false)
   const [keyModalOpen, setKeyModalOpen] = useState(false)
   const runCounterRef = useRef(1)
   const pendingRunRef = useRef(false)
@@ -698,8 +625,7 @@ export default function App() {
       const now = new Date()
       const run = {
         id: now.toISOString(),
-        label: `Run ${runCounterRef.current}`,
-        tags: [],
+        label: `Your run ${runCounterRef.current}`,
         prompt,
         output: result.output,
         verdict: extractVerdict(result.output),
@@ -708,6 +634,7 @@ export default function App() {
         model: selectedModel,
         toolsLoaded: result.toolCalls,
         iterations: result.iterations,
+        userRun: true,
       }
       setRuns(prev => [run, ...prev])
       setActiveRun(run)
@@ -750,39 +677,19 @@ export default function App() {
     }
   }, [prompt, executeRun])
 
-  const handleSelect = useCallback((run) => {
-    setSelectedIds(prev => {
-      if (prev.includes(run.id)) return prev.filter(id => id !== run.id)
-      if (prev.length >= 2) return [prev[1], run.id]
-      return [...prev, run.id]
-    })
+  const handleClearRuns = useCallback(() => {
+    setRuns([...prestagedRuns, RUN_0])
+    setActiveRun(null)
   }, [])
 
-  const handleLabelChange = useCallback((id, label) => {
-    setRuns(prev => prev.map(r => r.id === id ? { ...r, label } : r))
-    setActiveRun(prev => prev?.id === id ? { ...prev, label } : prev)
-  }, [])
-
-  const handleTagToggle = useCallback((id, tag) => {
-    setRuns(prev => prev.map(r => {
-      if (r.id !== id) return r
-      const tags = r.tags.includes(tag) ? r.tags.filter(t => t !== tag) : [...r.tags, tag]
-      return { ...r, tags }
-    }))
-  }, [])
-
+  const hasUserRuns = runs.some(r => r.userRun)
   const displayRun = activeRun ?? runs[0] ?? null
-  const selectedRuns = runs.filter(r => selectedIds.includes(r.id))
 
   const isRunDisabled = !prompt.trim()
 
   return (
     <>
       {keyModalOpen && <ApiKeyModal onConfirm={handleKeyConfirm} onClose={() => setKeyModalOpen(false)} />}
-
-      {compareMode && selectedRuns.length === 2 && (
-        <CompareView runA={selectedRuns[0]} runB={selectedRuns[1]} onClose={() => setCompareMode(false)} />
-      )}
 
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: C.bg, overflow: 'hidden' }}>
 
@@ -976,38 +883,17 @@ export default function App() {
               padding: '10px 14px', borderBottom: `1px solid ${C.border}`,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
             }}>
-              <SectionLabel text="RUN LOG" />
-            </div>
-
-            {selectedIds.length > 0 && (
-              <div style={{
-                padding: '8px 14px', borderBottom: `1px solid ${C.border}`,
-                display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0,
-                background: C.elevated,
-              }}>
-                <span style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary }}>
-                  {selectedIds.length}/2
-                </span>
-                {selectedIds.length === 2 && (
-                  <button
-                    onClick={() => setCompareMode(true)}
-                    style={{
-                      background: C.gold, border: 'none', color: '#0C0C0E',
-                      fontFamily: MONO, fontSize: '9px', letterSpacing: '0.08em',
-                      padding: '3px 12px', cursor: 'pointer',
-                    }}
-                  >
-                    COMPARE
-                  </button>
-                )}
+              <SectionLabel text="RUNS" />
+              {hasUserRuns && (
                 <button
-                  onClick={() => setSelectedIds([])}
-                  style={{ ...GHOST_BTN, padding: '3px 8px', marginLeft: 'auto' }}
+                  onClick={handleClearRuns}
+                  title="Remove your runs and return to the example set. Your key stays."
+                  style={{ ...GHOST_BTN, padding: '3px 10px' }}
                 >
-                  CLEAR
+                  CLEAR MY RUNS
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px' }}>
               {runs.map(run => (
@@ -1015,11 +901,7 @@ export default function App() {
                   key={run.id}
                   run={run}
                   isActive={displayRun?.id === run.id}
-                  isSelected={selectedIds.includes(run.id)}
-                  onSelect={handleSelect}
                   onView={r => setActiveRun(r)}
-                  onLabelChange={handleLabelChange}
-                  onTagToggle={handleTagToggle}
                   onExport={exportRunMd}
                 />
               ))}
