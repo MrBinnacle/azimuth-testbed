@@ -392,14 +392,34 @@ function loadedFileList(toolsLoaded) {
   return Array.from(new Set(reads))
 }
 
-function InstallCTA() {
+const INSTALL_CMD = 'npx skills add https://github.com/MrBinnacle/azimuth'
+
+function InstallCommandBox({ size = 'md' }) {
   const [copied, setCopied] = useState(false)
-  const cmd = 'npx skills add https://github.com/MrBinnacle/azimuth'
   const copy = () => {
-    navigator.clipboard?.writeText(cmd)
+    navigator.clipboard?.writeText(INSTALL_CMD)
       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
       .catch(() => {})
   }
+  const fs = size === 'sm' ? '11px' : '12px'
+  const pad = size === 'sm' ? '5px 10px' : '9px 14px'
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${C.borderMid}`, background: C.elevated, maxWidth: '100%' }}>
+      <code style={{ fontFamily: MONO, fontSize: fs, color: C.textPrimary, padding: pad, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        <span style={{ color: C.gold, userSelect: 'none' }}>$ </span>{INSTALL_CMD}
+      </code>
+      <button
+        onClick={copy}
+        aria-label="Copy install command"
+        style={{ background: C.elevated, border: 'none', borderLeft: `1px solid ${C.border}`, color: copied ? C.verdictProceed : C.textSecondary, fontFamily: MONO, fontSize: '10px', letterSpacing: '0.08em', padding: '0 12px', cursor: 'pointer', flexShrink: 0 }}
+      >
+        {copied ? 'COPIED' : 'COPY'}
+      </button>
+    </div>
+  )
+}
+
+function InstallCTA() {
   return (
     <div style={{ marginTop: '28px', border: `1px solid ${C.goldDim}`, background: C.surface, padding: '16px 18px' }}>
       <div style={{ fontFamily: SANS, fontSize: '10px', color: C.gold, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '8px' }}>
@@ -408,17 +428,7 @@ function InstallCTA() {
       <div style={{ fontFamily: MONO, fontSize: '12px', color: C.textPrimary, lineHeight: 1.6, marginBottom: '12px' }}>
         Install AZIMUTH in Claude Code to run it on every decision you make, not just here.
       </div>
-      <div style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${C.borderMid}`, background: C.elevated, maxWidth: '100%' }}>
-        <code style={{ fontFamily: MONO, fontSize: '12px', color: C.textPrimary, padding: '9px 14px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-          <span style={{ color: C.gold, userSelect: 'none' }}>$ </span>{cmd}
-        </code>
-        <button
-          onClick={copy}
-          style={{ background: C.elevated, border: 'none', borderLeft: `1px solid ${C.border}`, color: copied ? C.verdictProceed : C.textSecondary, fontFamily: MONO, fontSize: '10px', letterSpacing: '0.08em', padding: '0 14px', cursor: 'pointer', flexShrink: 0 }}
-        >
-          {copied ? 'COPIED' : 'COPY'}
-        </button>
-      </div>
+      <InstallCommandBox />
       <div style={{ marginTop: '10px', fontFamily: MONO, fontSize: '10px', color: C.textSecondary }}>
         Runs in Claude Code and Claude.ai.{' '}
         <a href="https://github.com/MrBinnacle/azimuth" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, textDecoration: 'none' }}>
@@ -708,6 +718,14 @@ export default function App() {
               {skillBundle.version}
             </span>
           </div>
+          {!isNarrow && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontFamily: MONO, fontSize: '9px', color: C.textSecondary, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                Install in Claude Code
+              </span>
+              <InstallCommandBox size="sm" />
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {!orientationOpen && (
               <button
