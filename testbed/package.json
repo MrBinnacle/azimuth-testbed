@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bundle:skill": "node scripts/bundle-skill.mjs",
+    "generate:runs": "node scripts/generate-boeing-runs.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

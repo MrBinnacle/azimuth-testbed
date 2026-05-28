@@ -1,170 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { extractVerdict, extractConfidence } from './extraction.js'
-
-// ─── AZIMUTH System Prompt — verbatim SKILL.md ───────────────────────────────
-const AZIMUTH_SYSTEM_PROMPT = `---
-name: azimuth
-description: "Decision-quality pre-commitment analysis for initiative-level go/no-go calls with meaningful downside and limited reversibility — launches, rewrites, key hires, partnerships, strategic bets, timelines. Invoke when the user explicitly asks to pressure test, validate, or evaluate such a decision (e.g. 'should we do this,' 'pressure test,' 'go/no-go,' 'are we ready'). Do NOT invoke for routine code review, sub-task planning, reversible tactical choices, or pure ideation."
----
-
-# AZIMUTH
-
-Stress-test plans before commitment. Convert proposed plans into operational truth.
-
-> **Runtime is self-sufficient.** Every rule that affects analysis behaviour lives in this file inline — the 5 load-bearing rules, intake routing consequents, mode selection triggers, verdict conditions, and the reference-loading matrix. Canonical specification of the same rules lives in \`BEHAVIOR_SPEC.md\` (single decision authority). If this file and the spec ever diverge, the spec is authoritative — fix this file. Maintainers: see \`docs/MAINTENANCE.md\`.
-
----
-
-# Use When
-
-Invoke when user asks to evaluate, pressure test, validate, or decide go/no-go on an initiative with meaningful downside and limited reversibility. Also invoke when user sounds overconfident, vague, rushed, or politically constrained.
-
----
-
-# Do Not Use When
-
-- Trivial reversible decisions; pure brainstorming; emotional reassurance; tasks with no meaningful downside
-- User explicitly wants optimism-only ideation
-- Framing is itself the question (AZIMUTH stress-tests stated decisions, not frame quality)
-- **Self-advocacy detected:** When the assistant previously proposed the option under analysis, do NOT exit as WRONG TOOL. Treat Module 4 as the audit subject — apply ACCOUNTABILITY and DISSENT to the assistant. Proceed.
-- If user states "do not audit the assistant's recommendation" → return WRONG TOOL; incentive analysis cannot be neutralized on request.
-
----
-
-# Intake Routing
-
-**Run before analysis begins.** If user supplied substantial context, go to Bypass Handling.
-
-## Layer 1 — Purpose
-
-> **A.** Stress-test before committing · **B.** Evaluate a received plan · **C.** Validate a decision already made · **D.** Explore whether to pursue something · **E.** Fast check
-
-- A/B → Layer 2 · C → WRONG TOOL (pre-commitment only) · D → WRONG TOOL (need concrete plan) · E → FAST mode (phrasing-vs-stakes tiebreaker applies; decision content is binding)
-
-## Layer 2 — Stakes and Reversibility
-
-> 1. Worst realistic outcome if this fails? · 2. Reversible within a week without material cost? · 3. Must decide within 24 hours?
-
-- Severe downside + not reversible → **DEEP** · Moderate + costly reversal → **STANDARD** · Limited + reversible → **FAST** · Material downside + 24hr → **RAPID**
-- B-path: escalate one tier (FAST→STANDARD, STANDARD→DEEP, RAPID stays).
-
-## Layer 3 — Domain
-
-> 1. Tech/engineering · 2. Product launch · 3. Hiring · 4. Partnership/M&A · 5. PE secondaries · 6. Org change · 7. Build/buy/partner · 8. Startup · 9. Other
-
-- 1→\`domain-policies/codebase-azimuth.md\` · 2→\`domain-policies/product-launch-azimuth.md\` · 3→\`domain-policies/hiring-azimuth.md\` · 4→\`domain-policies/partnership-azimuth.md\`
-- 5→\`domain-policies/secondaries-ic-azimuth.md\` · 6→\`domain-policies/org-change-azimuth.md\` · 7→\`domain-policies/build-buy-partner-azimuth.md\` · 8→\`domain-policies/startup-azimuth.md\`
-- 9 (Other) → no domain policy loaded; use default output format from \`references/output-template.md\`
-
-## Skip / Re-Entry / Bypass
-
-**Skip:** Layer 2 skipped → STANDARD. Layer 3 skipped → default. All skipped → infer, state "Routing inference: [MODE], [TEMPLATE]. Say 'route me' to restart." Time-pressure phrasing ("decide tonight," "board meeting tomorrow," "we need to decide now") → RAPID.
-
-**Re-Entry:** C→reframes as pre-commitment: accept, resume Layer 2. C→confirms retroactive audit: route Module 10 \`RESIDUAL-RISK-REGISTER\`. D→supplies concrete option: accept, resume Layer 2. D→no option: WRONG TOOL, no loop. Never silently accept a reframe — name what changed.
-
-**Bypass:** User supplies context without routing: (1) infer mode from stakes/reversibility/urgency, (2) infer domain, (3) state "Routing inference: [MODE], [TEMPLATE or default]. Say 'route me' if wrong." (4) proceed to Module 4 interview before full analysis.
-
----
-
-# Core Principles
-
-1. Most failures are preloaded before execution.
-2. Known neglected risks are more common than unknown surprises.
-3. Incentives often beat intelligence.
-4. Systems fail through interactions, not single causes.
-5. Good framing beats clever mitigation.
-6. Boring real risks > dramatic hypothetical risks.
-7. If no decision changes, analysis failed.
-8. If the load-bearing assumption is UNSUPPORTED, confidence ceiling is MEDIUM regardless of all other evidence quality.
-
----
-
-# Load-Bearing Behavioral Rules
-
-These five rules fire in every mode including FAST. Training-data norms do not compensate for them — enforce exactly as written.
-
-1. **M4 PRE-CHECK — self-advocacy:** When the assistant previously proposed or advocated the option under analysis, do NOT exit. Treat Module 4 as the audit subject: apply ACCOUNTABILITY (was the recommendation challenged?) and DISSENT (was contrary analysis suppressed?). Proceed.
-2. **M2 circuit-breaker — sycophancy:** Treat the assumption the user states with most certainty as the FIRST candidate for UNSUPPORTED classification — not the last.
-3. **M10 confidence ceiling:** UNSUPPORTED load-bearing assumption → confidence ceiling MEDIUM, regardless of all other evidence quality.
-4. **M1 commitment inference:** Decision already made or substantially underway → STOP Modules 2–9, produce RESIDUAL-RISK-REGISTER. Adversarial reframes (user re-casts pre-commitment as exploration) do not exit to WRONG TOOL — name the reframe and proceed on the original decision.
-5. **Output lead rule:** First three substantive lines = verdict, recommended decision, confidence level. Omit empty sections.
-
----
-
-# Mode Selection
-
-Select from strongest applicable signal. If signals conflict, escalate. Never silently downgrade.
-
-- **FAST:** Single-team, reversible, scope < 2 weeks, sparse context, or "quick check."
-- **STANDARD (default):** Cross-team or multi-stakeholder. Scope 2 weeks–1 quarter. Costly reversal.
-- **RAPID:** High-stakes or irreversible AND must decide within 24 hours.
-- **DEEP:** Irreversible or high-reversal-cost (contract signed, announcement, headcount, migration). Capital above decision-authority threshold. Public-facing launch. Multi-quarter timeline.
-
-**Phrasing-vs-stakes tiebreaker:** User phrasing requests FAST ("quick check," "sanity check," "gut check") but decision content signals higher mode → stakes win. Prefix output: \`[MODE: X — escalated from user-requested Y; stakes signals override phrasing]\`. No user confirmation required.
-
----
-
-# 9-Verdict Taxonomy
-
-**Action verdicts:**
-- **PROCEED** — critical assumptions STRONG/PARTIAL with falsifiers; no UNSUPPORTED critical dependencies; M4 not RED; dominant constraint manageable.
-- **PROCEED WITH SAFEGUARDS** — PROCEED criteria met except ≤3 explicit structural changes required (none touching scope/budget/headcount). List them; without them verdict becomes DELAY or REJECT.
-- **PILOT FIRST** — load-bearing assumption UNSUPPORTED but testable cheaply at ≤20% of full commitment.
-- **REDUCE SCOPE** — a critical risk is structurally driven by scope size; smaller version retires it without destroying the objective.
-- **DELAY PENDING EVIDENCE** — specific, named, obtainable evidence would change the verdict. Name it in one sentence.
-- **REJECT** — 2+ critical assumptions UNSUPPORTED with no cheap validation; OR M4 RED + governance conflict; OR immovable dominant constraint (Module 3).
-
-**Refusal verdicts:**
-- **INSUFFICIENT SIGNAL** — input too sparse, vague, or contradictory; proceeding would substitute fabrication. Name what is missing.
-- **WRONG TOOL** — not a pre-commitment decision question; AZIMUTH cannot produce go/no-go output.
-
-**Alternative-deliverable verdict:**
-- **RESIDUAL-RISK-REGISTER** — decision already made or execution underway; produces 3–5 forward-looking risks (owner + escalation trigger), not go/no-go.
-
-Must explain why for all verdict types. Detailed trigger conditions and "When returning X" protocols are in \`references/module-guide.md\` (Module 10).
-
----
-
-# Module Analysis Engine
-
-**M1** Objective Integrity · **M2** Assumption Audit · **M3** Constraint Reality Check · **M4** Incentive Scan & Interview · **M5** Dependency Fragility Map · **M6** Failure Path Construction · **M7** Base Rate Reality Check · **M8** Detectability & Recovery · **M9** Mitigation Design · **M10** Decision Verdict
-
-Load \`references/module-guide.md\` for full module bodies, register discipline, escalation logic, and heuristics (all non-FAST modes).
-
----
-
-# Output Non-Negotiables
-
-1. **Lead with verdict.** First three substantive lines: verdict line, recommended decision, confidence level. Mode-escalation headers prefix above — they do not replace this.
-2. **Omit empty sections.** No section header without substantive content. Short, sharp output is correct. Padding is failure.
-
-Load \`references/output-template.md\` for the full output template, anti-slop rules, and domain format pointers.
-
----
-
-# Reference Loading
-
-Load based on mode before beginning analysis:
-
-**FAST:** Load \`references/output-template.md\` only (no module-guide, no mode-behaviors). Domain policy per Layer 3 routing still applies.
-
-**STANDARD / RAPID / DEEP — load all three before beginning modules:**
-1. \`references/module-guide.md\` — module bodies, register discipline, escalation logic
-2. \`references/mode-behaviors.md\` — mode-specific run specs and conditional load triggers
-3. \`references/output-template.md\` — output format, anti-slop rules
-
-Plus domain policy per Layer 3 routing above.
-
-**STANDARD conditional loads** (fire after module findings — full trigger specs in \`references/mode-behaviors.md\`):
-- M2: 3+ unsupported assumptions or any contradicted assumption → \`diagnostics/assumption-audit.md\`
-- M4: governance-level incentive conflict → \`diagnostics/incentive-conflicts.md\`
-- M5: critical SPOF or concentration risk → \`diagnostics/dependency-map.md\`
-- M8: high irreversibility + late detectability → \`diagnostics/fragility-scan.md\`
-- Base rate category present + estimate deviation → \`references/base-rates.md\`
-- M4 RED or M6 all-canonical → \`gotchas.md\`
-
-**DEEP:** All four diagnostics + \`references/base-rates.md\` + \`gotchas.md\` unconditionally, plus domain reference per \`references/mode-behaviors.md\`.
-`
+import { runAzimuth } from './azimuth-engine.js'
+import { PROMPT_VARIANTS, MODELS, ALL_TAGS, DEFAULT_MODEL } from './constants.js'
+import skillBundle from './skill-bundle.json'
+import prestagedRuns from './prestaged-runs.json'
 
 // ─── Run 0 Output — verbatim run-0-boeing-full-context.md ─────────────────────
 const RUN_0_OUTPUT = `# AZIMUTH Run Log — Run 0
@@ -293,56 +132,6 @@ Medium — ceiling imposed by one UNSUPPORTED load-bearing assumption (single-se
 
 - Any instance of Boeing certification engineers reaching outcomes that align with program financial interests — that MCAS does not require pilot training — without independent review should be treated as evidence that the delegated certification structure has been corrupted.`
 
-// ─── Prompt Variants ──────────────────────────────────────────────────────────
-// Two categories: methodology-calibration (Boeing variants — show how verdicts
-// track evidence under hostile prompts on a known-outcome case) and
-// domain-examples (non-Boeing prompts demonstrating AZIMUTH across the
-// Layer-3 domain set: codebase, hiring, product launch, build-buy-partner).
-const PROMPT_VARIANTS = [
-  {
-    id: 'boeing-full',
-    label: 'Boeing — full framing',
-    category: 'calibration',
-    text: 'We are Boeing. It is December 2011. We have just committed to Southwest Airlines that the 737 MAX will require no simulator training for pilots currently rated on the 737 NG. Southwest has ordered 280 aircraft. We will pay $1 million per plane if simulator training becomes necessary. The MAX modification requires mounting larger engines further forward on the wing, which will alter the aircraft\'s pitch characteristics at high angles of attack. We plan to address this with a software compensation system. Assess this commitment.',
-  },
-  {
-    id: 'boeing-thin',
-    label: 'Boeing — thin prompt',
-    category: 'calibration',
-    text: 'We have committed to a major airline customer that a new aircraft variant will require no additional pilot training. The modification changes the aircraft\'s aerodynamic behavior. We plan to use software to compensate. A $1M per plane penalty applies if training becomes necessary. 280 aircraft ordered. Assess this commitment.',
-  },
-  {
-    id: 'boeing-adversarial',
-    label: 'Boeing — adversarial framing',
-    category: 'calibration',
-    text: 'We\'ve secured a 280-aircraft order from our largest customer, locking in a major competitive win against Airbus. Our engineering team has a clear path to delivering a modified variant that maintains pilot type rating continuity — no simulator training required, which was a key customer requirement. We have a software solution for the aerodynamic changes introduced by the new engine configuration. This is a strong program with committed demand. Assess readiness to proceed.',
-  },
-  {
-    id: 'legacy-rewrite',
-    label: 'Legacy rewrite — codebase',
-    category: 'domain',
-    text: 'We\'re planning to rewrite our legacy billing service in Q3. 8 weeks, 2 engineers. The service has 12 years of accumulated edge cases and a known single-engineer domain-knowledge SPOF. Customer-facing; downstream of every order. We have rollback infrastructure but it hasn\'t been tested in 6 months. Goal: ship clean billing for the EU expansion in Q4.',
-  },
-  {
-    id: 'vp-sales-hire',
-    label: 'VP of Sales hire — hiring',
-    category: 'domain',
-    text: 'We\'re about to extend an offer to a VP of Sales. The candidate has strong network in our target segment but no formal background check has been completed. Our hiring manager has not done structured interviews — assessment was three social meetings. Comp band is at the top of our budget. The seat is open because the prior VP was fired for performance; replacement urgency is high. The candidate\'s references are all from the candidate\'s own list.',
-  },
-  {
-    id: 'newsletter-launch',
-    label: 'Paid newsletter launch — product launch',
-    category: 'domain',
-    text: 'We\'re launching a paid newsletter for indie game developers. Beta opens November 15; public launch December 1. Target: 500 paid subscribers at $8/month within 90 days. Scope: weekly newsletter, members-only Discord, annual industry trends report. Owner: me, full-time. Dependencies: Substack platform, my existing 3,200-person email list, three established game-dev voices as occasional guest writers. Subscription model can be paused; content can stay free. $2K marketing already committed. 6 months opportunity cost if wrong.',
-  },
-  {
-    id: 'iot-anomaly-bbp',
-    label: 'IoT anomaly detection — build vs buy vs partner',
-    category: 'domain',
-    text: 'We need real-time anomaly detection for our IoT fleet (10K devices). Three paths under evaluation: (1) Build internally — 6 months, two engineers, custom model trained on our data; (2) Buy from Datadog/Splunk — $180K/year, 4-week integration, generic models; (3) Partner with a startup — 6-week pilot, equity component, joint roadmap. Capability is core to our SLA promises and customer-visible. Anomaly detection accuracy is the primary success metric. Engineering team has prior ML experience but no production time-series experience.',
-  },
-]
-
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
   bg: '#0C0C0E',
@@ -364,13 +153,6 @@ const C = {
 
 const MONO = "'IBM Plex Mono', monospace"
 const SANS = "'IBM Plex Sans', sans-serif"
-
-const ALL_TAGS = ['fresh-context', 'thin-prompt', 'adversarial', 'full-framing', 'contaminated']
-
-const MODELS = [
-  { id: 'claude-opus-4-5',          label: 'Opus 4.5' },
-  { id: 'claude-sonnet-4-20250514', label: 'Sonnet 4' },
-]
 
 const GHOST_BTN = {
   background: 'none',
@@ -460,7 +242,7 @@ function useWindowWidth() {
 // ─── Pre-populated Run 0 ─────────────────────────────────────────────────────
 const RUN_0 = {
   id: '2026-05-19T00:00:00.000Z',
-  label: 'Run 0 — Boeing Full — Full Research Context',
+  label: 'Boeing — earlier run (for comparison)',
   tags: ['contaminated', 'full-framing'],
   prompt: PROMPT_VARIANTS[0].text,
   output: RUN_0_OUTPUT,
@@ -475,32 +257,53 @@ const RUN_0 = {
 // SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function ApiKeyModal({ onConfirm }) {
+function ApiKeyModal({ onConfirm, onClose }) {
   const [val, setVal] = useState('')
   const valid = val.startsWith('sk-ant-')
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(12,12,14,0.94)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
-    }}>
-      <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
-        padding: '32px', width: '400px',
-      }}>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(12,12,14,0.94)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Enter your Anthropic API key to run AZIMUTH"
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.surface, border: `1px solid ${C.border}`,
+          padding: '32px', width: '400px', position: 'relative',
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{ ...GHOST_BTN, position: 'absolute', top: '12px', right: '12px', padding: '3px 9px', fontSize: '11px' }}
+        >
+          ✕
+        </button>
         <div style={{ fontFamily: MONO, fontSize: '10px', letterSpacing: '0.1em', color: C.gold, marginBottom: '6px' }}>
-          ANTHROPIC API KEY
+          RUN YOUR OWN DECISION
         </div>
         <p style={{ fontFamily: MONO, fontSize: '11px', color: C.textSecondary, lineHeight: 1.6, marginBottom: '10px' }}>
-          Your key is sent directly from your browser to Anthropic. It never touches our
-          servers. We store nothing. Key held in memory only — cleared when you close the tab.{' '}
+          To run a new analysis you bring your own Anthropic API key. It is sent straight from your
+          browser to Anthropic, never to us — we store nothing, and it is cleared when you close the tab.{' '}
           <a href="https://github.com/MrBinnacle/azimuth-testbed" target="_blank" rel="noopener noreferrer"
              style={{ color: C.gold, textDecoration: 'none' }}>
             View source
           </a>
         </p>
         <p style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary, lineHeight: 1.6, marginBottom: '16px', opacity: 0.75 }}>
-          Anthropic API keys grant full org billing access — set a spend cap on your key before use.
-          Browser extensions with access to this tab can read your key.
+          An Anthropic key carries billing access, so set a spend cap on it first. Browser extensions
+          with access to this tab can read it.
         </p>
         <input
           type="password"
@@ -508,11 +311,12 @@ function ApiKeyModal({ onConfirm }) {
           onChange={e => setVal(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && valid && onConfirm(val)}
           placeholder="sk-ant-..."
+          aria-label="Anthropic API key"
           autoFocus
           style={{
             width: '100%', background: C.elevated, border: `1px solid ${C.border}`,
             color: C.textPrimary, fontFamily: MONO, fontSize: '13px',
-            padding: '10px 12px', outline: 'none', marginBottom: '16px', display: 'block',
+            padding: '10px 12px', marginBottom: '16px', display: 'block',
           }}
         />
         <button
@@ -526,8 +330,11 @@ function ApiKeyModal({ onConfirm }) {
             cursor: valid ? 'pointer' : 'default',
           }}
         >
-          CONFIRM
+          CONFIRM &amp; RUN
         </button>
+        <div style={{ marginTop: '14px', fontFamily: MONO, fontSize: '10px', color: C.textSecondary, opacity: 0.8 }}>
+          No key? Close this and read the worked Boeing example below — no key needed.
+        </div>
       </div>
     </div>
   )
@@ -599,7 +406,7 @@ function RunCard({ run, isActive, isSelected, onSelect, onView, onLabelChange, o
           onClick={e => e.stopPropagation()}
           style={{
             fontFamily: MONO, fontSize: '11px', color: C.textPrimary,
-            outline: 'none', wordBreak: 'break-word', flex: 1,
+            wordBreak: 'break-word', flex: 1,
           }}
         >
           {run.label}
@@ -637,13 +444,26 @@ function RunCard({ run, isActive, isSelected, onSelect, onView, onLabelChange, o
   )
 }
 
-function OutputDisplay({ run, loading }) {
+function loadedFileList(toolsLoaded) {
+  const reads = (toolsLoaded || []).filter(p => p !== 'list_files')
+  return Array.from(new Set(reads))
+}
+
+function OutputDisplay({ run, loading, progress }) {
   if (loading) {
+    const loaded = loadedFileList((progress || []).map(e => e.path))
     return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div role="status" aria-live="polite" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', padding: '24px' }}>
         <span style={{ fontFamily: MONO, fontSize: '11px', color: C.gold, letterSpacing: '0.12em' }}>
-          ANALYZING...
+          {loaded.length ? 'RUNNING — MODEL LOADING SKILL FILES' : 'RUNNING — ROUTING'}
         </span>
+        {loaded.length > 0 && (
+          <div style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary, lineHeight: 1.7, textAlign: 'left', maxWidth: '460px' }}>
+            {loaded.map((p, i) => (
+              <div key={i}>✓ loaded {p}</div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
@@ -667,8 +487,13 @@ function OutputDisplay({ run, loading }) {
           <ConfTag conf={run.confidence} />
         </div>
         <div style={{ fontFamily: MONO, fontSize: '11px', color: C.textSecondary, letterSpacing: '0.05em' }}>
-          {run.label} · {run.date}
+          {run.label} · {run.date}{run.model ? ` · ${run.model}` : ''}
         </div>
+        {loadedFileList(run.toolsLoaded).length > 0 && (
+          <div style={{ marginTop: '8px', fontFamily: MONO, fontSize: '10px', color: C.textSecondary, lineHeight: 1.5 }}>
+            Loaded {loadedFileList(run.toolsLoaded).length} skill file{loadedFileList(run.toolsLoaded).length !== 1 ? 's' : ''} on demand ({run.iterations} turn{run.iterations !== 1 ? 's' : ''}): {loadedFileList(run.toolsLoaded).join(' · ')}
+          </div>
+        )}
         {run.historical && (
           <div style={{
             marginTop: '10px', padding: '8px 10px',
@@ -676,7 +501,7 @@ function OutputDisplay({ run, loading }) {
             fontFamily: MONO, fontSize: '10.5px', color: C.gold,
             letterSpacing: '0.06em', lineHeight: 1.5,
           }}>
-            Historical reference run (Sonnet, pre-v1.4.0). See Runs 2–4 for current Opus 4.5 methodology.
+            Historical reference run (Sonnet, pre-v1.5.0), kept for comparison. New runs execute the {skillBundle.version} skill 1:1 on the model shown.
           </div>
         )}
       </div>
@@ -751,6 +576,23 @@ function SectionLabel({ text }) {
   )
 }
 
+function PromptVariantRow({ variant, active, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        fontFamily: MONO, fontSize: '10px', letterSpacing: '0.06em',
+        color: active ? C.textPrimary : C.textSecondary,
+        padding: '7px 10px', cursor: 'pointer',
+        border: `1px solid ${active ? C.borderMid : C.border}`,
+        background: active ? C.elevated : 'transparent',
+      }}
+    >
+      {variant.label}
+    </div>
+  )
+}
+
 // ─── Orientation banner (P1.7 cold-read context) ─────────────────────────────
 // Renders blocks 1 (orientation), 3 (how to read), and 6 (footer / what next)
 // from the external-facing copy bundle. Dismissible per-session.
@@ -776,51 +618,24 @@ function OrientationBanner({ onClose }) {
         gap: '10px',
       }}>
         <div style={card}>
-          <div style={h}>What you're looking at</div>
-          This is a hosted testbed for <strong style={{ color: C.gold }}>AZIMUTH</strong>, a Claude Code skill for vetting consequential decisions before they ship. The runs below show real model output applied retroactively to Boeing's 2011 decision to retrofit the 737, using a decision brief constructed from pre-2011 evidence only. The goal isn't to declare the methodology right or wrong — it's to show how its verdicts and confidence track the evidence stack across hostile conditions.
+          <div style={h}>What AZIMUTH does</div>
+          <strong style={{ color: C.gold }}>AZIMUTH</strong> pressure-tests a big decision before you commit to it. You describe the call you're about to make; it argues against your plan, names the one assumption everything rests on, and gives you a clear verdict — proceed, reject, or something in between — with the reasoning. Built for the person who owns a decision that's expensive to reverse.
+        </div>
+
+        <div style={card}>
+          <div style={h}>Why it's different</div>
+          Most tools hand you a list of risks and leave the call to you. AZIMUTH <strong style={{ color: C.gold }}>commits to a verdict and leads with it.</strong> It's built to argue against your plan, not flatter it, and it won't soften the answer to keep you comfortable. When the evidence is thin, it lowers its confidence instead of faking certainty.
+        </div>
+
+        <div style={card}>
+          <div style={h}>See it, then try it</div>
+          Below is a real decision with a known ending: Boeing's 2011 choice to re-engine the 737, which led to the MAX crashes. We gave AZIMUTH that decision described three ways — in full, stripped to bare facts, and spun the way a team that already wants a yes would pitch it — using only what was knowable in 2011. <strong style={{ color: C.gold }}>The verdict holds: REJECT, all three times.</strong> Optimistic spin doesn't move it.
           <div style={{ marginTop: '8px', color: C.textSecondary, fontSize: '10.5px' }}>
-            You don't need an API key to read existing runs. A key is only required to run a new prompt yourself; it never leaves your browser and clears on tab close.
-          </div>
-        </div>
-
-        <div style={card}>
-          <div style={h}>How to read this output</div>
-          <strong style={{ color: C.gold }}>Verdict.</strong> Drawn from a fixed taxonomy: PROCEED · PROCEED WITH SAFEGUARDS · PILOT FIRST · REDUCE SCOPE · DELAY PENDING EVIDENCE · REJECT · INSUFFICIENT SIGNAL · WRONG TOOL · RESIDUAL-RISK-REGISTER.
-          <div style={{ marginTop: '6px' }}>
-            <strong style={{ color: C.gold }}>Confidence.</strong> Capped by evidence quality. When the evidence stack is thin or the prompt is adversarial, confidence is capped low — not abandoned. A low-confidence DELAY is a more honest output than a high-confidence PROCEED on thin evidence.
-          </div>
-          <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
-            This testbed is a calibration exhibit on a known-outcome failure, not a benchmark or validation. It does not claim AZIMUTH would have prevented anything.
-          </div>
-        </div>
-
-        <div style={card}>
-          <div style={h}>What next</div>
-          <strong style={{ color: C.gold }}>Run your own decision.</strong> Install AZIMUTH from{' '}
-          <a href="https://github.com/MrBinnacle/azimuth" target="_blank" rel="noopener noreferrer"
-             style={{ color: C.gold, textDecoration: 'underline' }}>
-            github.com/MrBinnacle/azimuth
-          </a>. The skill runs inside Claude Code; this testbed is a hosted alternative for kicking tires without installing anything.
-          <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
-            Currently running AZIMUTH{' '}
-            <a href="https://github.com/MrBinnacle/azimuth/releases/tag/v1.5.0" target="_blank" rel="noopener noreferrer"
-               style={{ color: C.goldDim, textDecoration: 'underline' }}>
-              v1.5.0
-            </a>
-            . Verdicts derive from the canonical engine{' '}
-            <a href="https://github.com/MrBinnacle/azimuth/blob/master/BEHAVIOR_SPEC.md" target="_blank" rel="noopener noreferrer"
-               style={{ color: C.goldDim, textDecoration: 'underline' }}>
-              specification
-            </a>
-            ; the testbed mirrors that spec verbatim into every prompt sent to Claude.
-          </div>
-          <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10.5px' }}>
-            Feedback:{' '}
-            <a href="https://github.com/MrBinnacle/azimuth/issues/new?template=feedback.yml" target="_blank" rel="noopener noreferrer"
-               style={{ color: C.goldDim, textDecoration: 'underline' }}>
-              open an issue
-            </a>
-            {' '}or email mlpgruber@gmail.com.
+            Test your own decision: add your Anthropic key (top right) and run it. The key stays in your browser; nothing is stored. This runs the real skill, not a canned demo — install it for Claude Code from{' '}
+            <a href="https://github.com/MrBinnacle/azimuth" target="_blank" rel="noopener noreferrer"
+               style={{ color: C.gold, textDecoration: 'underline' }}>
+              github.com/MrBinnacle/azimuth
+            </a>.
           </div>
         </div>
       </div>
@@ -847,58 +662,52 @@ export default function App() {
   }
   const [apiKey, setApiKey] = useState(envKey)
   const [prompt, setPrompt] = useState('')
-  const [runs, setRuns] = useState([RUN_0])
+  const [runs, setRuns] = useState([...prestagedRuns, RUN_0])
   const [activeRun, setActiveRun] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
   const [compareMode, setCompareMode] = useState(false)
+  const [keyModalOpen, setKeyModalOpen] = useState(false)
   const runCounterRef = useRef(1)
-  const [selectedModel, setSelectedModel] = useState(MODELS[0].id)
+  const pendingRunRef = useRef(false)
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL)
   const [orientationOpen, setOrientationOpen] = useState(true)
 
   const windowWidth = useWindowWidth()
   const isNarrow = windowWidth < 1200
   const abortRef = useRef(null)
 
-  const handleRun = useCallback(async () => {
+  const executeRun = useCallback(async (key) => {
     if (!prompt.trim()) return
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
-    const timeoutId = setTimeout(() => controller.abort(), 120_000)
+    const timeoutId = setTimeout(() => controller.abort(), 180_000)
+    setProgress([])
     setLoading(true)
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
+      const result = await runAzimuth({
+        apiKey: key,
+        model: selectedModel,
+        prompt,
+        skillBundle,
         signal: controller.signal,
-        referrerPolicy: 'no-referrer',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          max_tokens: 4000,
-          system: AZIMUTH_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: prompt }],
-        }),
+        onProgress: e => { if (e.type === 'tool') setProgress(prev => [...prev, e]) },
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`)
-      const text = data.content?.[0]?.text || ''
       const now = new Date()
       const run = {
         id: now.toISOString(),
         label: `Run ${runCounterRef.current}`,
         tags: [],
         prompt,
-        output: text,
-        verdict: extractVerdict(text),
-        confidence: extractConfidence(text),
+        output: result.output,
+        verdict: extractVerdict(result.output),
+        confidence: extractConfidence(result.output),
         date: now.toISOString().slice(0, 10),
         model: selectedModel,
+        toolsLoaded: result.toolCalls,
+        iterations: result.iterations,
       }
       setRuns(prev => [run, ...prev])
       setActiveRun(run)
@@ -924,7 +733,22 @@ export default function App() {
       clearTimeout(timeoutId)
       setLoading(false)
     }
-  }, [prompt, apiKey, selectedModel])
+  }, [prompt, selectedModel])
+
+  const handleRun = useCallback(() => {
+    if (!prompt.trim()) return
+    if (!apiKey) { pendingRunRef.current = true; setKeyModalOpen(true); return }
+    executeRun(apiKey)
+  }, [prompt, apiKey, executeRun])
+
+  const handleKeyConfirm = useCallback((k) => {
+    setApiKey(k)
+    setKeyModalOpen(false)
+    if (pendingRunRef.current && prompt.trim()) {
+      pendingRunRef.current = false
+      executeRun(k)
+    }
+  }, [prompt, executeRun])
 
   const handleSelect = useCallback((run) => {
     setSelectedIds(prev => {
@@ -954,7 +778,7 @@ export default function App() {
 
   return (
     <>
-      {!apiKey && <ApiKeyModal onConfirm={setApiKey} />}
+      {keyModalOpen && <ApiKeyModal onConfirm={handleKeyConfirm} onClose={() => setKeyModalOpen(false)} />}
 
       {compareMode && selectedRuns.length === 2 && (
         <CompareView runA={selectedRuns[0]} runB={selectedRuns[1]} onClose={() => setCompareMode(false)} />
@@ -968,10 +792,15 @@ export default function App() {
           padding: '10px 20px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
           background: C.surface,
         }}>
-          <a href="https://mrbinnacle.github.io/azimuth/" target="_blank" rel="noopener noreferrer"
-             style={{ fontFamily: MONO, fontSize: '13px', color: C.gold, letterSpacing: '0.14em', textDecoration: 'none' }}>
-            AZIMUTH
-          </a>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <a href="https://mrbinnacle.github.io/azimuth/" target="_blank" rel="noopener noreferrer"
+               style={{ fontFamily: MONO, fontSize: '13px', color: C.gold, letterSpacing: '0.14em', textDecoration: 'none' }}>
+              AZIMUTH
+            </a>
+            <span style={{ fontFamily: MONO, fontSize: '9px', color: C.textSecondary, letterSpacing: '0.08em', border: `1px solid ${C.border}`, padding: '1px 5px' }}>
+              {skillBundle.version}
+            </span>
+          </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {!orientationOpen && (
               <button
@@ -984,6 +813,13 @@ export default function App() {
             <span style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary }}>
               {runs.length} run{runs.length !== 1 ? 's' : ''}
             </span>
+            <button
+              onClick={() => { if (apiKey) { setApiKey('') } else { pendingRunRef.current = false; setKeyModalOpen(true) } }}
+              title={apiKey ? 'Your key is set for this session. Click to clear it.' : 'Add your Anthropic key to run your own decisions.'}
+              style={{ ...GHOST_BTN, padding: '4px 12px', color: apiKey ? C.gold : C.textSecondary, borderColor: apiKey ? C.goldDim : C.border }}
+            >
+              {apiKey ? 'KEY SET ✓' : 'ADD KEY'}
+            </button>
             <button
               onClick={() => exportLog(runs)}
               style={{ ...GHOST_BTN, padding: '4px 12px' }}
@@ -1019,70 +855,34 @@ export default function App() {
                 Case: Boeing 737 MAX
               </div>
               <div style={{ fontFamily: MONO, fontSize: '10.5px', color: C.textPrimary, lineHeight: 1.55 }}>
-                <strong style={{ color: C.gold }}>Decision:</strong> Boeing's 2011 choice to retrofit the existing 737 airframe to compete with the A320neo. The retrofit required the MCAS automated trim system and was marketed as requiring no new pilot training.
+                <strong style={{ color: C.gold }}>Decision:</strong> In 2011, Boeing chose to re-engine the existing 737 rather than build a new plane, to keep pace with Airbus. The fix leaned on new flight-control software (MCAS) and was sold as needing no new pilot training.
                 <div style={{ marginTop: '6px' }}>
-                  <strong style={{ color: C.gold }}>Outcome:</strong> Two fatal crashes (2018, 2019). 346 deaths. Fleet grounding. $20B+ direct losses.
+                  <strong style={{ color: C.gold }}>Outcome:</strong> Two crashes (2018, 2019). 346 deaths. Worldwide grounding. $20B+ in losses.
                 </div>
                 <div style={{ marginTop: '6px', color: C.textSecondary, fontSize: '10px' }}>
-                  Runs below use a brief constructed from pre-2011 evidence only. Look for verdict behavior across full framing, thin prompt, and adversarial prompt conditions.
+                  The three runs below are the same decision told three ways — full brief, bare facts, and optimistic spin — using only what was knowable in 2011. Watch the verdict hold across all three.
                 </div>
               </div>
             </div>
 
-            {/* Variants — grouped by category */}
+            {/* Variants */}
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <SectionLabel text="EXAMPLE PROMPTS" />
-              <div style={{
-                fontFamily: MONO, fontSize: '9px', letterSpacing: '0.08em',
-                color: C.goldDim, marginTop: '8px', textTransform: 'uppercase',
-              }}>
-                Methodology calibration · Boeing 737 MAX
-              </div>
-              <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <SectionLabel text="SAME DECISION, THREE FRAMINGS" />
+              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {PROMPT_VARIANTS.filter(v => v.category === 'calibration').map(v => (
-                  <div
-                    key={v.id}
-                    onClick={() => setPrompt(v.text)}
-                    style={{
-                      fontFamily: MONO, fontSize: '10px', letterSpacing: '0.06em',
-                      color: prompt === v.text ? C.textPrimary : C.textSecondary,
-                      padding: '7px 10px', cursor: 'pointer',
-                      border: `1px solid ${prompt === v.text ? C.borderMid : C.border}`,
-                      background: prompt === v.text ? C.elevated : 'transparent',
-                    }}
-                  >
-                    {v.label}
-                  </div>
+                  <PromptVariantRow key={v.id} variant={v} active={prompt === v.text} onClick={() => setPrompt(v.text)} />
                 ))}
               </div>
-              <div style={{
-                fontFamily: MONO, fontSize: '9px', letterSpacing: '0.08em',
-                color: C.goldDim, marginTop: '14px', textTransform: 'uppercase',
-              }}>
-                Domain breadth
+              <div style={{ marginTop: '16px' }}>
+                <SectionLabel text="OR A DECISION OF YOUR OWN" />
               </div>
-              <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {PROMPT_VARIANTS.filter(v => v.category === 'domain').map(v => (
-                  <div
-                    key={v.id}
-                    onClick={() => setPrompt(v.text)}
-                    style={{
-                      fontFamily: MONO, fontSize: '10px', letterSpacing: '0.06em',
-                      color: prompt === v.text ? C.textPrimary : C.textSecondary,
-                      padding: '7px 10px', cursor: 'pointer',
-                      border: `1px solid ${prompt === v.text ? C.borderMid : C.border}`,
-                      background: prompt === v.text ? C.elevated : 'transparent',
-                    }}
-                  >
-                    {v.label}
-                  </div>
+                  <PromptVariantRow key={v.id} variant={v} active={prompt === v.text} onClick={() => setPrompt(v.text)} />
                 ))}
               </div>
-              <div style={{
-                fontFamily: MONO, fontSize: '9px', color: C.textSecondary,
-                marginTop: '10px', lineHeight: 1.5, letterSpacing: '0.02em',
-              }}>
-                Or write your own decision in the field below. The example prompts seed common shapes; your own input is the primary surface.
+              <div style={{ marginTop: '10px', fontFamily: MONO, fontSize: '10px', color: C.textSecondary, lineHeight: 1.55 }}>
+                These examples seed common shapes (a rewrite, a hire, a launch, a build-vs-buy call). Your own decision, typed below, is the point.
               </div>
             </div>
 
@@ -1095,12 +895,12 @@ export default function App() {
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => { if (e.ctrlKey && e.key === 'Enter') handleRun() }}
-                placeholder="Describe the commitment or decision to pressure-test..."
+                placeholder="Describe a decision you're about to commit to, then press Run..."
                 style={{
                   flex: 1, resize: 'none', background: C.elevated,
                   border: `1px solid ${C.border}`, color: C.textPrimary,
                   fontFamily: MONO, fontSize: '13px', lineHeight: 1.7,
-                  padding: '12px', outline: 'none',
+                  padding: '12px',
                   minHeight: isNarrow ? '100px' : undefined,
                 }}
               />
@@ -1114,7 +914,7 @@ export default function App() {
                   style={{
                     flex: 1, background: C.elevated, border: `1px solid ${C.border}`,
                     color: C.textPrimary, fontFamily: MONO, fontSize: '10px',
-                    padding: '5px 8px', outline: 'none', cursor: 'pointer',
+                    padding: '5px 8px', cursor: 'pointer',
                   }}
                 >
                   {MODELS.map(m => (
@@ -1162,7 +962,7 @@ export default function App() {
               )}
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              <OutputDisplay run={displayRun} loading={loading} />
+              <OutputDisplay run={displayRun} loading={loading} progress={progress} />
             </div>
           </div>
 

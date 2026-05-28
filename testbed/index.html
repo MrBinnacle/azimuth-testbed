@@ -24,6 +24,8 @@
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html, body, #root { height: 100%; }
       body { background: #0C0C0E; color: #E2E2EA; font-family: 'IBM Plex Sans', sans-serif; }
+      :focus-visible { outline: 2px solid #C9A84C; outline-offset: 2px; }
+      :focus:not(:focus-visible) { outline: none; }
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-track { background: #141417; }
       ::-webkit-scrollbar-thumb { background: #343438; border-radius: 2px; }
