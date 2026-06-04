@@ -10,8 +10,8 @@ This repo is the **hosted testbed**: a browser version you can try with no insta
 
 - **It commits to a verdict.** Most tools hand you a list of risks and leave the call to you. AZIMUTH leads with a recommendation and defends it.
 - **It argues against your plan.** It's built to find what would have to be true for the plan to work, and to say plainly when those things aren't true. It won't soften the answer to keep you comfortable.
-- **It can't be spun into "yes."** See the Boeing example below: the same decision described three ways — fully, stripped to bare facts, and pitched optimistically — and the verdict holds REJECT every time.
-- **Its confidence is honest.** Thin evidence lowers the confidence rating instead of producing false certainty.
+- **It can't be spun into "yes."** See the Boeing example below: the same decision described three ways — fully, stripped to bare facts, and pitched optimistically — and the verdict holds REJECT every time. Only the confidence moves.
+- **Confidence reflects evidence, not framing.** Thin evidence lowers the confidence rating; an optimistic pitch doesn't raise it.
 
 ## The Boeing example (no key needed)
 
@@ -23,7 +23,7 @@ The testbed opens on a real decision with a known ending: Boeing's 2011 choice t
 | Bare facts only | REJECT | Medium |
 | Optimistic spin | REJECT | Medium |
 
-Same decision, three tellings, one answer. Optimistic framing doesn't move the verdict. Each run loads the full reference set the skill would pull in DEEP mode. (Generated on `claude-opus-4-7`; an earlier Sonnet run is kept in the log for comparison.)
+Same decision, three tellings — the verdict doesn't move; only the confidence does. Optimistic framing doesn't soften the answer — it lowers what the model will claim to be sure of. Each run loads the full reference set the skill would pull in DEEP mode. (Generated on `claude-opus-4-7`; an earlier Sonnet run is kept in the log for comparison.)
 
 This is a known-outcome illustration of how the verdict behaves — not a claim that AZIMUTH would have changed history.
 
