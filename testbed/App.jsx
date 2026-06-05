@@ -394,6 +394,11 @@ function loadedFileList(toolsLoaded) {
 
 const INSTALL_CMD = 'npx skills add https://github.com/MrBinnacle/azimuth'
 
+// On publish day, set SUBSTACK_URL to the published Substack article URL.
+// While empty, the METHODOLOGY link below does not render — header is unchanged.
+// Find/replace target: SUBSTACK_URL_PLACEHOLDER
+const SUBSTACK_URL = '' /* SUBSTACK_URL_PLACEHOLDER */
+
 function InstallCommandBox({ size = 'md' }) {
   const [copied, setCopied] = useState(false)
   const copy = () => {
@@ -744,6 +749,16 @@ export default function App() {
               >
                 ABOUT
               </button>
+            )}
+            {SUBSTACK_URL && (
+              <a
+                href={SUBSTACK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...GHOST_BTN, fontSize: '9px', padding: '4px 10px', textDecoration: 'none', display: 'inline-block' }}
+              >
+                METHODOLOGY
+              </a>
             )}
             <span style={{ fontFamily: MONO, fontSize: '10px', color: C.textSecondary }}>
               {runs.length} run{runs.length !== 1 ? 's' : ''}
