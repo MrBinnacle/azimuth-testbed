@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Weekly Monday 12:00 UTC. Runs npm audit against the locked deps so newly-published
+    # alerts are caught without waiting for a push. Closes the false-negative trap that
+    # caused commit 58332db to flip CI red — audit step only fires on push by default.
+    - cron: '0 12 * * 1'
 
 jobs:
   build:

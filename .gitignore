@@ -15,3 +15,10 @@ verification/
 
 # Local Netlify folder
 .netlify
+
+# Session-state and exploratory output
+.day1-state.json
+graphify-out/
+
+# Pre-publish drafts (Substack articles, etc — paste-and-ship surface, not versioned product)
+drafts/
